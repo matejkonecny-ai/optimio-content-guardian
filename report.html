@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Optimio Content Guardian — Report</title>
+<style>
+  :root {
+    --bg: #0f1117; --card: #1a1f2e; --border: #2a3a5a;
+    --green: #27ae60; --yellow: #f39c12; --orange: #e67e22; --red: #c0392b;
+    --blue: #4a9eff; --text: #e0e0e0; --muted: #888;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 2rem; }
+  h1 { font-size: 1.8rem; margin-bottom: .3rem; }
+  .subtitle { color: var(--muted); margin-bottom: 2rem; font-size: .95rem; }
+  .summary { display: flex; gap: 1rem; margin-bottom: 2.5rem; flex-wrap: wrap; }
+  .stat { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.5rem; min-width: 140px; }
+  .stat-num { font-size: 2rem; font-weight: 700; }
+  .stat-label { color: var(--muted); font-size: .85rem; margin-top: .2rem; }
+  .filters { margin-bottom: 1.5rem; display: flex; gap: .5rem; flex-wrap: wrap; }
+  .filter-btn { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: .4rem 1rem; border-radius: 20px; cursor: pointer; font-size: .85rem; }
+  .filter-btn.active, .filter-btn:hover { background: var(--blue); border-color: var(--blue); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem; margin-bottom: 1.2rem; }
+  .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .card-meta { flex: 1; }
+  .card-url { font-size: .8rem; color: var(--blue); text-decoration: none; word-break: break-all; }
+  .card-url:hover { text-decoration: underline; }
+  .card-divize { display: inline-block; background: #1e3a5f; color: #8ec8ff; padding: .2rem .7rem; border-radius: 12px; font-size: .78rem; margin: .4rem 0; }
+  .card-h1 { font-size: 1.05rem; font-weight: 600; margin-top: .3rem; }
+  .score-badge { text-align: center; min-width: 80px; }
+  .score-num { font-size: 2.2rem; font-weight: 700; line-height: 1; }
+  .score-label { font-size: .75rem; color: var(--muted); margin-top: .2rem; }
+  .score-green { color: var(--green); }
+  .score-yellow { color: #f1c40f; }
+  .score-orange { color: var(--orange); }
+  .score-red { color: var(--red); }
+  .section-title { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: .5rem; margin-top: 1rem; }
+  .tag { display: inline-block; padding: .2rem .6rem; border-radius: 4px; font-size: .8rem; margin: .2rem .2rem .2rem 0; }
+  .tag-problem { background: #3a1a1a; color: #ff8080; border: 1px solid #5a2a2a; }
+  .tag-good { background: #1a3a1a; color: #80ff80; border: 1px solid #2a5a2a; }
+  .rewrite-box { background: #0d1117; border-radius: 8px; padding: 1rem; margin-top: 1rem; border: 1px solid var(--border); }
+  .rewrite-original { color: #ff9090; font-style: italic; margin-bottom: .6rem; font-size: .9rem; line-height: 1.5; }
+  .rewrite-arrow { color: var(--muted); font-size: .8rem; margin-bottom: .5rem; }
+  .rewrite-new { color: #90ff90; font-size: .9rem; line-height: 1.5; font-weight: 500; }
+  .rewrite-reason { color: var(--muted); font-size: .8rem; margin-top: .6rem; border-top: 1px solid var(--border); padding-top: .5rem; }
+  .hodnoceni-badge { font-size: .85rem; padding: .3rem .8rem; border-radius: 20px; display: inline-block; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+</style>
+</head>
+<body>
+<h1>🔍 Optimio Content Guardian</h1>
+<p class="subtitle">AI audit obsahu webu · porovnání se strategií Tone of Voice</p>
+
+<div class="summary">
+  <div class="stat"><div class="stat-num">36</div><div class="stat-label">Průměrné skóre</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--green)">0</div><div class="stat-label">✅ Vyhovuje (90+)</div></div>
+  <div class="stat"><div class="stat-num" style="color:#f1c40f">0</div><div class="stat-label">⚠️ Drobné (70–89)</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--orange)">12</div><div class="stat-label">🔶 Nevyhovuje (40–69)</div></div>
+  <div class="stat"><div class="stat-num" style="color:var(--red)">20</div><div class="stat-label">🔴 Kritické (0–39)</div></div>
+  <div class="stat"><div class="stat-num">32</div><div class="stat-label">Auditovaných stránek</div></div>
+</div>
+<div class="filters">
+  <button class="filter-btn active" data-filter="all" onclick="filterCards('all')">Všechny</button>
+  <button class="filter-btn" data-filter="critical" onclick="filterCards('critical')">🔴 Kritické</button>
+  <button class="filter-btn" data-filter="fail" onclick="filterCards('fail')">🔶 Nevyhovuje</button>
+  <button class="filter-btn" data-filter="minor" onclick="filterCards('minor')">⚠️ Drobné</button>
+  <button class="filter-btn" data-filter="ok" onclick="filterCards('ok')">✅ Vyhovuje</button>
+</div>
+<div class="card audit-card" data-score="critical">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/reference/video-kampan-k-rebrandingu-vinarstvi-znovin" target="_blank">/reference/video-kampan-k-rebrandingu-vinarstvi-znovin</a>
+      <div><span class="card-divize">Reference (case study)</span></div>
+      <div class="card-h1">Video kampaň k rebrandingu vinařství Znovín</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-red">0</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">⚠️ Chyba auditu</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">Expecting property name enclosed in double quotes: line 18 column 110 (char 2036)</span>
+  
+  
+</div>
+
+<div class="card audit-card" data-score="critical">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/nase-sluzby/data" target="_blank">/nase-sluzby/data</a>
+      <div><span class="card-divize">Data & Analytika</span></div>
+      <div class="card-h1">Data</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-red">18</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔴 Zásadní nesoulad</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H1 je pouze 'Data' — zcela postrádá byznysový dopad, nevyjadřuje žádnou hodnotu ani differenciátor divize</span><span class="tag tag-problem">H2 'Co nabízíme' je dodavatelský nadpis orientovaný na popis služeb, ne na výsledek pro klienta</span><span class="tag tag-problem">Nadpisy H3 (Testování použitelnosti, Research, UX audit) vůbec neodpovídají divizi Data & Analytika — patří do UX/produktové divize, nikoliv do datové analytiky</span><span class="tag tag-problem">Text 'Dejte nám vědět a my se vám ozveme. Probereme veškeré možnosti a ukážeme vám, jak takovou ponákupní komunikaci zvládnout.' obsahuje vágní slib bez konkrétního závazku a odkazuje na 'ponákupní komunikaci', což je zcela mimo kontext stránky o datech</span><span class="tag tag-problem">Alibistická formulace 'aby se věci začaly hýbat správným směrem' — hedging, chybí přesnost a zodpovědnost</span><span class="tag tag-problem">Text o Interim CMO a account managerovi je generický, nezapadá do kontextu stránky Data & Analytika a nehovoří o datovém dopadu na byznys</span><span class="tag tag-problem">Žádný text explicitně nekomunikuje, co klient vydělá, ušetří nebo získá díky datové analytice — zcela chybí byznysový výsledek</span><span class="tag tag-problem">Fráze 'zajistí hladkou komunikaci a předání informací' popisuje interní proces, ne hodnotu pro klienta</span><span class="tag tag-problem">Celková struktura stránky působí jako mix obsahu z různých stránek webu — chybí koherence a zaměření na divizi</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">Věta 'Proměníme vaše data ve správná rozhodnutí pro váš byznys.' má správný směr — orientuje se na výsledek a používá akční sloveso</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Data</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Víte přesně, co váš marketing vydělává. My vám to ukážeme na datech.</div>
+          <div class="rewrite-reason">💡 H1 musí okamžitě komunikovat byznysový dopad — ne název divize. Nová verze mluví přímo jazykem CEO/CMO, přebírá zodpovědnost za výsledek a odráží positioning Optimia jako strategického partnera, který pracuje s daty jako jediným jazykem rozhodování.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="critical">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/reference/narust-obratu-o-212-tohle-muze-byt-i-vas-pribeh-pokud-zvladnete-3-zakladni-marketingova-pravidla" target="_blank">/reference/narust-obratu-o-212-tohle-muze-byt-i-vas-pribeh-pokud-zvladnete-3-zakladni-marketingova-pravidla</a>
+      <div><span class="card-divize">Reference (case study)</span></div>
+      <div class="card-h1">Jak jsme pomohli UNIQA odhalit tajemství konkurence a získat náskok. Pomoci umíme i vám!</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-red">22</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔴 Zásadní nesoulad</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H1 obsahuje alibistickou frázi 'Pomoci umíme i vám!' — typický dodavatelský tón bez zodpovědnosti, odporuje pozicioningu Optimia jako strategického partnera</span><span class="tag tag-problem">H1 slibuje 'odhalit tajemství konkurence' — senzacechtivá, clickbaitová formulace neodpovídající C-suite komunikaci ani byznysovému hlasu Optimia</span><span class="tag tag-problem">Titulek stránky se odkazuje na 'nárůst obratu o 212 %' (URL), ale H1 mluví o UNIQA — obsah case study přitom popisuje VitalCountry; zásadní nesoulad mezi URL, titulkem, H1 a obsahem</span><span class="tag tag-problem">Text o klientovi je čistě popisný ('rodinná firma', 'balí s láskou', 'BIO potraviny bez chemie') — komunikuje řemeslo a charakter klienta, nikoli byznysový kontext nebo výzvu</span><span class="tag tag-problem">Fráze 'díky společnému úsilí se podařilo' je alibistická a pasivní — Optimio nepřebírá zodpovědnost, výsledek je prezentován jako náhoda nebo sdílená zásluha bez konkrétního autorství</span><span class="tag tag-problem">Výsledky ('tržby vzrostly o 212 %', 'meziroční růst o 61 %') jsou izolované bez kontextu — chybí propojení s konkrétní strategií, investicí a ROI, takže nepůsobí jako řízený výsledek</span><span class="tag tag-problem">Přítomnost placeholder obsahu ('Lorem ipsum...', 'Nadpis spravovaný přes CMS', 'Možnost vložení videa YTB', 'může být textový nebo počáteční problémy') — stránka je zjevně nedokončená a nesmí být publikována</span><span class="tag tag-problem">Text 'Začali jsme u PPC kampaní, kde jsme se zaměřili na zvýšení počtu objednávek' popisuje aktivitu, nikoli strategický záměr nebo byznysový výsledek</span><span class="tag tag-problem">Chybí litmus test bod 2: Optimio nikde explicitně nepřebírá odpovědnost za výsledek — text působí jako popis spolupráce, ne jako vyjádření strategického partnerství</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">Konkrétní čísla (212 % růst tržeb, 61 % meziroční růst) jsou přítomna a dávají textu potenciál pro byznysovou argumentaci</span><span class="tag tag-good">Časový rámec spolupráce (od roku 2020, tři roky) dodává výsledkům důvěryhodnost a kontext dlouhodobého partnerství</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Jak jsme pomohli UNIQA odhalit tajemství konkurence a získat náskok. Pomoci umíme i vám!</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ VitalCountry: 212% růst tržeb za tři roky. Takto vypadá marketing řízený jako byznys funkce.</div>
+          <div class="rewrite-reason">💡 Původní H1 kombinuje clickbaitový slib ('tajemství konkurence'), špatné jméno klienta (UNIQA místo VitalCountry) a dodavatelskou frázi ('pomoci umíme i vám'). Navržený H1 staví na konkrétním, měřitelném výsledku, přebírá autorství Optimia bez omluv a přímo odkazuje na klíčový positioning — marketing jako řízená byznys funkce, nikoli sled aktivit.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="critical">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/reference/sklizime-ovoce-poctive-seo-prace-organicka-navstevnost-money-cz-roste-o-200" target="_blank">/reference/sklizime-ovoce-poctive-seo-prace-organicka-navstevnost-money-cz-roste-o-200</a>
+      <div><span class="card-divize">Reference (case study)</span></div>
+      <div class="card-h1">Sklízíme ovoce poctivé SEO práce. Organická návštěvnost Money.cz roste o 200 %</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-red">22</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔴 Zásadní nesoulad</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H1 explicitně zmiňuje 'organická návštěvnost roste o 200 %' — strategie přísně zakazuje popis návštěvnosti bez kontextu byznysu (relevantní je zisk, ne provoz). Číslo 200 % bez vazby na obrat, zákazníky nebo ROI přímo odporuje pravidlu zakázaných vzorů.</span><span class="tag tag-problem">Celý text je postaven na metafoře zahradničení (zahradník, lopata, metr, kypříme půdu, sklizit ovoce, rajská zahrada) — tón je vypravěčský a přátelský způsobem, který neodpovídá byznysové autoritě C-suite partnera. Optimio mluví jako CMO, ne jako pohádkový zahradník.</span><span class="tag tag-problem">Odkaz na strýčka Pompa z Arabely a pohádkové přirovnání je v přímém rozporu s tónem 'sebevědomého poradce' — text zní jako agenturní storytelling, ne jako strategický partner odpovědný za byznysový výsledek.</span><span class="tag tag-problem">Věta 'dostali naši SEO specialisté pozvánku ke spolupráci' komunikuje pasivní dodavatelský model — Optimio bylo přizváno, ne že převzalo iniciativu a zodpovědnost.</span><span class="tag tag-problem">Nikde v textu není zmíněn byznysový dopad pro klienta: co znamenal růst návštěvnosti pro obrat Money.cz, kolik nových zákazníků získal, jak se změnila konverze nebo tržby. Text popisuje aktivitu a výkon kampaně, nikoliv byznysový výsledek.</span><span class="tag tag-problem">Formulace 'fůra práce' je hovorová a neodpovídá formálně-byznysovému tónu 70/30 dle strategie.</span><span class="tag tag-problem">H2 nadpisy jsou zcela metaforické a nenesou žádnou byznysovou hodnotu ('Každý zahradník začíná klíčovkou', 'Problémy v rajské zahradě?') — nadpisy musí komunikovat výsledek nebo přínos, ne poetiku.</span><span class="tag tag-problem">Text nesplňuje litmus test: 1) neříká, co klient vydělal/ušetřil, 2) Optimio nepřebírá zodpovědnost, pouze popisuje aktivitu, 3) tón neodpovídá mentálnímu profilu CEO/CMO, ale spíše čtenáři lifestyle blogu.</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">Konkrétní číslo (200 % růst) je přítomno — zárodek měřitelnosti je tam, jen postrádá byznysový kontext.</span><span class="tag tag-good">Délka spolupráce (od 2013) naznačuje partnerský vztah a loajalitu klienta, což je silný signál důvěryhodnosti — tento fakt by mohl být strategicky využit.</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Sklízíme ovoce poctivé SEO práce. Organická návštěvnost Money.cz roste o 200 %</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Money.cz: 200% růst organické viditelnosti s přímým dopadem na akvizici zákazníků. Jak jsme přebudovali SEO základ a udělali z webu hlavní obchodní kanál.</div>
+          <div class="rewrite-reason">💡 Původní H1 porušuje hned dvě pravidla strategie: (1) metafora 'sklízíme ovoce' snižuje autoritu na úroveň agenturního vyprávění místo C-suite partnera, (2) 'organická návštěvnost' bez vazby na byznysový výsledek je přesně zakázaný vzor. Navržený přepis zachovává číslo, přidává byznysový kontext (akvizice zákazníků, hlavní obchodní kanál) a komunikuje zodpovědnost za výsledek, ne za aktivitu.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="critical">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/nase-sluzby/media" target="_blank">/nase-sluzby/media</a>
+      <div><span class="card-divize">Média</span></div>
+      <div class="card-h1">Media</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-red">22</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔴 Zásadní nesoulad</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H1 'Media' je zcela prázdný — neříká nic o byznysovém dopadu ani o tom, co klient získá; jde o holý popis divize</span><span class="tag tag-problem">H2 'Co nabízíme' je dodavatelský nadpis orientovaný na Optimio, nikoli na výsledek klienta</span><span class="tag tag-problem">Text 'Dejte nám vědět a my se vám ozveme. Probereme veškeré možnosti...' je pasivní, alibistický a odpovídá tónu běžné agentury, nikoli strategického partnera — chybí zodpovědnost a drive</span><span class="tag tag-problem">Zmínka o 'ponákupní komunikaci' v závěrečné větě je tematicky zcela mimo kontext mediální divize — působí jako chyba vloženého obsahu z jiné stránky</span><span class="tag tag-problem">Text 'Spolupráce všech divizí na denní bázi... zajistí hladkou komunikaci' popisuje interní proces, nikoli byznysový výsledek pro klienta — klient nezajímá, jak Optimio funguje, ale co mu to přinese</span><span class="tag tag-problem">Sekce 'Interim CMO vás vrátí na správný směr' s H3 'Najdeproblémy' obsahuje chybu v sazbě (slito dohromady) a věta 'aby se věci začaly hýbat správným směrem' je vágní slib bez konkrétního měřitelného výstupu</span><span class="tag tag-problem">Žádný z textů explicitně nejmenuje byznysový výsledek mediálního mixu — chybí vazba na obrat, ROAS, dosah s měřitelným dopadem nebo snížení CAC</span><span class="tag tag-problem">H3 nadpisy 'Rádio' a 'Outdoor' jsou holé popisy nástrojů bez jakéhokoli kontextu dopadu — porušuje pravidlo 'byznysový dopad, ne popis řemesla'</span><span class="tag tag-problem">Celková stránka nenaplňuje litmus test: neodpovídá na otázku, co klient vydělá/ušetří/získá, nepřebírá zodpovědnost a nezní jako komunikace pro CEO/CMO</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">Věta 'Vyměníme domněnky o vašich zákaznících za skutečná data' je správně formulovaná — pracuje s konkrétní transformací a odpovídá datovému positioningu Optimia</span><span class="tag tag-good">Přítomnost sekce Interim CMO naznačuje správné propojení mediální strategie s řízením marketingu jako byznys funkce — záměr je správný, ale exekuce textu nevyhovuje</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Dejte nám vědět a my se vám ozveme. Probereme veškeré možnosti a ukážeme vám, jak takovou ponákupní komunikaci zvládnout.</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Řídíme mediální strategie, které přinášejí měřitelný dopad — od plánování po vyhodnocení. Každá koruna investovaná do médií má jasný výstup: dosah správného publika ve správný čas s přímou vazbou na obchodní výsledky vaší firmy.</div>
+          <div class="rewrite-reason">💡 Původní věta je pasivní, tematicky chybná (zmiňuje ponákupní komunikaci mimo kontext) a nevyjadřuje žádnou zodpovědnost ani byznysový výsledek. Navržený přepis přebírá odpovědnost za výsledek, komunikuje dopad mediálního investování a odpovídá tónu strategického partnera na úrovni C-suite.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="critical">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/nase-sluzby/ux-research" target="_blank">/nase-sluzby/ux-research</a>
+      <div><span class="card-divize">UX Research</span></div>
+      <div class="card-h1">UX & Research</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-red">22</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔴 Zásadní nesoulad</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H1 a nadpisy jsou holé nálepky bez byznysového dopadu — 'UX & Research' nepřináší klientovi žádnou informaci o tom, co získá</span><span class="tag tag-problem">H2 'Co nabízíme' je dodavatelský rámec — strategie explicitně zakazuje popis řemesla místo výsledku</span><span class="tag tag-problem">Text 'Dejte nám vědět a my se vám ozveme. Probereme veškeré možnosti...' je pasivní nabídka bez zodpovědnosti a navíc obsahuje vazbu na 'ponákupní komunikaci', která na stránce UX Research nedává kontextuální smysl</span><span class="tag tag-problem">Věta 'Spolupráce všech divizí na denní bázi je pro nás klíčová. K rukám vám bude zkušený account...' mluví o interním procesu Optimia, nikoli o byznysovém dopadu pro klienta — klienta nezajímá, jak Optimio funguje uvnitř</span><span class="tag tag-problem">Chybí jakýkoli konkrétní byznysový výsledek — žádné číslo, žádný ROI, žádná vazba na obrat nebo konverze</span><span class="tag tag-problem">Věta 'Někdy stačí pár týdnů se správným člověkem na palubě, aby se věci začaly hýbat správným směrem' je alibistická a vágní — 'věci se začaly hýbat' je přesně typ prázdného slibu zakázaného strategií</span><span class="tag tag-problem">H3 nadpisy 'Najdeproblémy' a 'Nastaví strategii a procesy' jsou evidentně technicky rozbitý text (chybí mezera), ale i obsahově jde o popis aktivity, ne výsledku</span><span class="tag tag-problem">Celá stránka neprojde ani jednou otázkou litmus testu — chybí byznysový výsledek, zodpovědnost i hlas odpovídající CEO/CMO profilu</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">Věta 'Vyměníme domněnky o vašich zákaznících za skutečná data.' jde správným směrem — kontrastuje předchozí stav s novým a implikuje přechod od dojmů k datům</span><span class="tag tag-good">Propojení s Interim CMO blokem naznačuje snahu o cross-sell a celistvý ekosystém služeb, což odpovídá pozicioningu strategického partnera</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ H1: UX & Research | Úvodní text chybí, H2: Co nabízíme</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ H1: Víte, proč zákazníci z webu odcházejí bez nákupu? | Perex: UX Research v Optimiu přeměňuje chování uživatelů na konkrétní změny — každý problém, který identifikujeme, má přímou vazbu na konverze a obrat. Nepopisujeme, co vidíme. Říkáme, co opravit a co to firmě vydělá.</div>
+          <div class="rewrite-reason">💡 H1 musí okamžitě rezonovat s bolestí CEO/CMO a navázat na byznysový výsledek. Nový perex přebírá zodpovědnost za výsledek, odkazuje na data a konverze místo popisu disciplíny, a eliminuje dodavatelský rámec 'Co nabízíme'.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="critical">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/zkusenosti" target="_blank">/zkusenosti</a>
+      <div><span class="card-divize">Zkušenosti / Reviews</span></div>
+      <div class="card-h1">Více než 15 let zkušeností</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-red">22</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔴 Zásadní nesoulad</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">Zakázané slovo 'fullservice' přímo v textu: '...jedné z předních fullservice marketingových agentur...' — hard ban dle strategie.</span><span class="tag tag-problem">Optimio se označuje jako 'marketingová agentura', což přímo odporuje positioningu: 'Optimio není marketingová agentura. Je to strategický partner.'</span><span class="tag tag-problem">Celý text je historický příběh bez jediného zmínění byznysového dopadu pro klienta — litmus test č. 1 (byznysový výsledek) selhává na plné čáře.</span><span class="tag tag-problem">Tón je autobiografický a emocionální ('odvaha', 'inovace', 'snílek', 'empatie', 'vizionář') — nesedí na profil CEO/CMO, který hledá ROI a odpovědnost za výsledek.</span><span class="tag tag-problem">Popis zakladatelů jako 'vizionář a snílek' a 'perfekcionista' je jazyk startupu z Facebooku, nikoli C-suite strategického partnera.</span><span class="tag tag-problem">Zodpovědnost za výsledky není nikde přebírána — text popisuje historii aktivit, nikoli dopad nebo výsledky pro klienty.</span><span class="tag tag-problem">Výčet klientů (Veletrhy Brno, Tescoma apod.) je prezentován jako seznam bez kontextu — chybí měřitelný výsledek nebo dopad spolupráce.</span><span class="tag tag-problem">Věta 'Klienti často ani nevěděli, že za rostoucími výsledky stojíme my' implicitně komunikuje pasivitu a anonymitu — opak sebevědomého positioningu.</span><span class="tag tag-problem">Internet Session jako 'posezení u piva' — neformální tón nesedí na 70 % formální hlas Optimia.</span><span class="tag tag-problem">Chybí jakákoli vazba na Interim CMO model, strategické řízení marketingu nebo data & ROI mindset.</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">Zmínka o konkrétních velkých klientech (Omega Pharma, Tescoma, Seyfor) buduje důvěryhodnost — dobrý základ pro přepis s byznysovým kontextem.</span><span class="tag tag-good">Délka fungování od roku 2009 je silný signál seniority — správně využitý může podpořit positioning C-suite knowhow.</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Příběh Optimia je o odvaze, inovacích a neustálém růstu. Od skromných začátků, kdy jsme stáli ve stínu úspěchů našich klientů, až po dnešní pozici jedné z předních fullservice marketingových agentur, jsme vždy kladli důraz na výsledky, empatii a strategický přístup.</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Optimio řídí marketing jako byznys funkci od roku 2009. Za 15+ let jsme přešli od výkonnostních kampaní k plné odpovědnosti za marketingový výkon firem — na úrovni Interim CMO. Naši klienti neplatí za aktivity. Platí za výsledky, které vidí v obratu.</div>
+          <div class="rewrite-reason">💡 Původní věta obsahuje zakázané slovo 'fullservice', označuje Optimio jako agenturu (rozpor s positioningem) a komunikuje neurčité hodnoty bez byznysového dopadu. Navržený přepis okamžitě ukotvuje positioning strategického partnera/Interim CMO, zdůrazňuje zodpovědnost za výsledek a mluví jazykem CEO cílové skupiny.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="critical">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/reference/jak-jsme-dostali-reklamu-do-televize-behem-jednoho-dopoledne" target="_blank">/reference/jak-jsme-dostali-reklamu-do-televize-behem-jednoho-dopoledne</a>
+      <div><span class="card-divize">Reference (case study)</span></div>
+      <div class="card-h1">Jak jsme dostali reklamu do televize během jednoho dopoledne</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-red">22</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔴 Zásadní nesoulad</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H1 a celý titulek je zaměřen na aktivitu a řemeslo ('dostali reklamu do televize'), nikoli na byznysový výsledek klienta — chybí odpověď na otázku co klient vydělal nebo získal</span><span class="tag tag-problem">Zakázaná fráze 'Spustíme' — text obsahuje 'Spuštění zajistíme během chvilky my', což je blízký ekvivalent zakázaného slova 'Spustíme' a navíc 'během chvilky' zní amatérsky a triviálně</span><span class="tag tag-problem">Zakázaný vzor 'Přivedeme vám více návštěvníků' — bullet 'Na web bvv.cz jsme přivedli více jak 2 800 000 návštěvníků' prezentuje provoz bez kontextu dopadu na byznys (žádné konverze, obrat, ROI)</span><span class="tag tag-problem">Text vysvětluje, co je HbbTV a jak funguje reklamní aukce — jde o 'junior příručku', klient-CEO nepotřebuje edukaci o tom, co je červené tlačítko na ovladači</span><span class="tag tag-problem">Zcela chybí byznysový výsledek pro klienta — 344 952 zhlédnutí a 5 791 prokliků jsou metriky aktivity, nikoli dopadu na obrat, prodeje nebo jiný obchodní ukazatel festivalu</span><span class="tag tag-problem">Tón textu je dodavatelský a popisný ('K propagaci jsme použili...', 'I když je potřeba ke každému systému přistupovat odlišně...') — chybí zodpovědnost a drive strategického partnera</span><span class="tag tag-problem">Celá case study komunikuje 'co jsme udělali', ne 'za co jsme převzali odpovědnost a co to klientovi přineslo' — odporuje core pozicioningu Optimia jako Interim CMO partnera</span><span class="tag tag-problem">Věta 'Děláme online kampaně pro 22 klíčových veletrhů' — slovo 'Děláme' je vágní a dodavatelské, bez odpovědnosti za výsledek</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">Case study pracuje s konkrétními čísly (344 952 zhlédnutí, 5 791 prokliků, 2 800 000 návštěvníků) — správný směr, čísla jsou přítomna</span><span class="tag tag-good">Struktura etap naznačuje systematický přístup, který by při správném zarámování mohl podpořit positioning strategického partnera</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Jak jsme dostali reklamu do televize během jednoho dopoledne</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Festival Life: 344 952 zhlédnutí a měřitelný dopad na prodej vstupenek — jak jsme pro BVV vybudovali multi-channel kampaň s přímou vazbou na obchodní výsledek</div>
+          <div class="rewrite-reason">💡 Původní H1 komunikuje aktivitu a rychlost provedení — tedy řemeslo, nikoli výsledek. Navržený titulek okamžitě ukazuje měřitelný výstup, jmenuje klienta a zasazuje kampaň do byznysového kontextu. Zároveň odstraňuje triviální framing 'během jednoho dopoledne', který snižuje vnímání seniorní hodnoty Optimia.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="critical">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/nase-sluzby/ux-research/ux-audit" target="_blank">/nase-sluzby/ux-research/ux-audit</a>
+      <div><span class="card-divize">UX Research</span></div>
+      <div class="card-h1">UX audit</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-red">28</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔴 Zásadní nesoulad</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H3 'Maximální obsah. Maximální výsledky. 998% nárůst všeho!' je zjevně testovací/placeholder obsah bez reálné hodnoty — přítomnost na produkčním webu je kritická chyba a přímo odporuje pozicioningu seniorní firmy</span><span class="tag tag-problem">H3 'Test pro ocenění' je další placeholder text bez obsahu — web obsahuje nedokončené sekce</span><span class="tag tag-problem">Chybí byznysový dopad: texty popisují, CO UX audit dělá ('odhalí matoucí části', 'zjistí chování uživatelů'), nikoliv co klient vydělá nebo ušetří — klasický popis řemesla místo výsledku</span><span class="tag tag-problem">Dodavatelský tón v celém textu: 'Připravíme', 'Získáte seznam', 'Navrhneme' — Optimio nevystupuje jako zodpovědný partner, ale jako dodavatel plnící zadání</span><span class="tag tag-problem">Alibistická formulace 'Cítíte, že má váš web mezery?' — otázka zahájí text nejistotou místo autoritou; Optimio mluví z pozice experta, ne prodavače</span><span class="tag tag-problem">Sekce s výsledky ('Máme prokazatelné výsledky') neobsahuje žádná konkrétní čísla ani případové studie — slib bez důkazu</span><span class="tag tag-problem">Text 'Osobní schůzka nad vašimi očekáváními a potřebami. Musíme vás dokonale poznat.' zní jako popis procesu, ne jako byznysový benefit; chybí kontext, co klient z tohoto kroku získá</span><span class="tag tag-problem">Poslední bullet ('Navrhneme účinnou strategii. Připravíme mediální mix...') tematicky nepatří na stránku UX auditu — mluví o mediálním mixu a rozpočtech, což je jiná služba</span><span class="tag tag-problem">Zakázaný vzor 'Pomůžeme odhalit' — alibistické, Optimio nezkouší pomoci, Optimio dodává</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">H2 'Jak UX audit pomůže vašemu businessu' správně orientuje sekci na dopad pro firmu</span><span class="tag tag-good">Zmínka o 'motivacích k nákupu' a 'překážkách bránících nákupu' je krok správným směrem — propojuje UX s obchodním výsledkem</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Cítíte, že má váš web mezery? Že by měl vypadat, a hlavně fungovat lépe? Připravíme komplexní UX audit s konkrétním návrhem řešení.</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Každá slabina ve vašem webu má přímý dopad na konverze a obrat. UX audit Optimio identifikuje přesná místa, kde uživatelé odcházejí nebo nenakupují — a dodá konkrétní plán nápravy s měřitelným dopadem na výsledky.</div>
+          <div class="rewrite-reason">💡 Původní text začíná nejistou otázkou, která oslabuje autoritu Optimia, a popisuje službu vágně ('komplexní audit'). Navržený text okamžitě propojuje UX s obchodním dopadem (konverze, obrat), přebírá zodpovědnost za výsledek a mluví jazykem CEO — bez hedgingu a bez popisu řemesla.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="critical">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/nase-sluzby/digital-advertising" target="_blank">/nase-sluzby/digital-advertising</a>
+      <div><span class="card-divize">PPC / Digital Advertising</span></div>
+      <div class="card-h1">Digital Advertising</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-red">28</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔴 Zásadní nesoulad</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H1 'Digital Advertising' je pouze název divize bez byznysového dopadu — nesděluje nic o výsledku, který klient získá.</span><span class="tag tag-problem">Strukturální nesoulad: text o Interim CMO nemá na stránce Digital Advertising co dělat — jde o jiný positioning, jiná služba, jiný kontext.</span><span class="tag tag-problem">Věta 'Dejte nám vědět a my se vám ozveme' je pasivní výzva bez zodpovědnosti a bez byznysového rámce — chybí jakýkoliv důvod, proč klient má jednat.</span><span class="tag tag-problem">Zmínka o 'ponákupní komunikaci' se objevuje bez kontextu a bez vazby na obsah stránky — působí jako chybně vložený fragment z jiné stránky.</span><span class="tag tag-problem">Věta o 'zkušeném accountu, který zajistí hladkou komunikaci' popisuje interní proces a řemeslo, ne byznysový dopad pro klienta — CEO nezajímá, jak spolu specialisté komunikují, ale co to přinese jeho firmě.</span><span class="tag tag-problem">Nadpisy H3 (Brand building, Zbožové srovnávače, Videokampaně, Programmatic - RTB, Social Ads, Digitální strategie) jsou holé názvy formátů bez jakéhokoliv byznysového kontextu — porušují pravidlo 'byznysový dopad, ne popis služby'.</span><span class="tag tag-problem">Chybí explicitní vazba na ROAS, obratové cíle nebo měřitelný výstup — klíčový differenciátor PPC divize dle strategie zcela absentuje.</span><span class="tag tag-problem">Věta 'Někdy stačí pár týdnů se správným člověkem na palubě, aby se věci začaly hýbat správným směrem' obsahuje vágní slib a alibistický tón ('začaly hýbat správným směrem') — přesný opak sebevědomého hlasu Optimia.</span><span class="tag tag-problem">Fráze 'nabídne jasné kroky k řešení' je vágní — jaké kroky, k jakému výsledku, za jak dlouho?</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">Perex 'Reklama, která vydělá teď - a buduje hodnotu do budoucna' správně kombinuje krátkodobý a dlouhodobý byznysový výsledek — má správný směr a přímou vazbu na zisk.</span><span class="tag tag-good">Zmínka o spolupráci všech divizí naznačuje integrovaný přístup, který je diferenciátorem oproti běžným agenturám.</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Spolupráce všech divizí na denní bázi je pro nás klíčová. K rukám vám bude zkušený account, který zajistí hladkou komunikaci a předání informací mezi všemi specialisty.</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Digital Advertising v Optimiu nefunguje jako izolovaná kampaňová jednotka. Každá aktivita — od Search po Programmatic — je řízena v přímé vazbě na vaše obratové cíle a ROAS. Váš senior account nenese zodpovědnost za reporty, ale za výsledek: každá koruna investovaná do reklamy má měřitelný výstup.</div>
+          <div class="rewrite-reason">💡 Původní věta popisuje interní organizaci práce (předání informací mezi specialisty), což je pro CEO irelevantní. Přepis přesouvá fokus na byznysový dopad, zavádí klíčová měřítka (ROAS, obratové cíle) v souladu s PPC sekcí strategie a přeformuluje roli accounta z koordinátora na nositele zodpovědnosti za výsledek.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="critical">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/nase-sluzby/web-a-seo" target="_blank">/nase-sluzby/web-a-seo</a>
+      <div><span class="card-divize">SEO</span></div>
+      <div class="card-h1">Web & SEO</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-red">28</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔴 Zásadní nesoulad</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H1 'Web & SEO' je čistý popis řemesla bez jakéhokoli byznysového dopadu — nesděluje, co klient získá.</span><span class="tag tag-problem">Nadpis H2 'Co nabízíme' je dodavatelský vzorec — orientuje text na výčet aktivit, nikoli na výsledky firmy.</span><span class="tag tag-problem">Žádný z textů explicitně neodpovídá na otázku, co klient vydělá, ušetří nebo získá — chybí byznysový výsledek úplně.</span><span class="tag tag-problem">Věta 'Dejte nám vědět a my se vám ozveme. Probereme veškeré možnosti...' je pasivní nabídka bez odpovědnosti a závazku — přesný příklad zakázaného vzoru 'Zadáte nám práci, my ji uděláme'.</span><span class="tag tag-problem">Věta o Interim CMO ('Někdy stačí pár týdnů...') nepatří do SEO divize — kontextově nesouvisí se stránkou Web & SEO a působí jako chybně vložený generický blok.</span><span class="tag tag-problem">Věta 'Ukážeme vám, jak takovou ponákupní komunikaci zvládnout' odkazuje na ponákupní komunikaci, která vůbec nesouvisí s tématem stránky Web & SEO — zjevná chyba při přenosu obsahu.</span><span class="tag tag-problem">Chybí jakékoli silné akční sloveso ve stylu Optimia (řídíme, přebíráme, stavíme, dosahujeme) — tón je neutrální a agenturní.</span><span class="tag tag-problem">Texty nehovoří k mentálnímu profilu CEO/CMO — chybí čísla, ROI, obratová vazba ani konkrétní výstup.</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">Věta 'Vyměníme domněnky o vašich zákaznících za skutečná data.' je nejsilnější prvek stránky — přímá, akční, orientovaná na přechod od domněnek k datům, což rezonuje s pozicioningem Optimia.</span><span class="tag tag-good">Zmínka o spolupráci všech divizí na denní bázi naznačuje systémový přístup, i když není dovedena k byznysovému výsledku.</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Dejte nám vědět a my se vám ozveme. Probereme veškeré možnosti a ukážeme vám, jak takovou ponákupní komunikaci zvládnout.</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Stavíme weby a organickou viditelnost, která přivádí zákazníky s nákupním záměrem — měřitelně, bez závislosti na reklamním rozpočtu. Řekneme vám přesně, co váš web v tuto chvíli stojí peníze a jak to změníme.</div>
+          <div class="rewrite-reason">💡 Původní věta je pasivní, kontextově chybná (ponákupní komunikace na SEO stránce) a neobsahuje žádný závazek ani byznysový výsledek. Navržený přepis odpovídá vzoru Optimia pro SEO divizi ze strategie, obsahuje akční slovesa, byznysový dopad a přebírá odpovědnost za výsledek.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="critical">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/nase-sluzby/retention-cx" target="_blank">/nase-sluzby/retention-cx</a>
+      <div><span class="card-divize">Retention & CX</span></div>
+      <div class="card-h1">Retention & CX</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-red">28</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔴 Zásadní nesoulad</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">Žádný text nekomunikuje byznysový dopad — chybí jakákoliv zmínka o tom, co klient vydělá, ušetří nebo získá z retention a CX aktivit (porušení litmus testu č. 1).</span><span class="tag tag-problem">Věta 'Dejte nám vědět a my se vám ozveme. Probereme veškeré možnosti a ukážeme vám, jak takovou ponákupní komunikaci zvládnout.' je pasivní nabídka — klient nás kontaktuje a my 'ukážeme jak' — Optimio nepřebírá zodpovědnost, pouze nabízí poradenství na vyžádání.</span><span class="tag tag-problem">Věta 'nabídne jasné kroky k řešení' je alibistická — Optimio nenabízí kroky k řešení, Optimio výsledky dodává. Formulace je v rozporu s tónem zodpovědnosti.</span><span class="tag tag-problem">Sekce H2 'Co nabízíme' je dodavatelský frame — strategie explicitně zakazuje popis služby místo byznysového dopadu. Žádný z H3 popisků (Customer experience, RFM analýza atd.) není doprovázen textem o obchodním výsledku.</span><span class="tag tag-problem">Věta o account manažerovi ('K rukám vám bude zkušený account...') popisuje interní proces, ne hodnotu pro klienta — chybí odpověď na otázku 'co z toho firma má'.</span><span class="tag tag-problem">Celková stránka postrádá čísla, konkrétní výstupy ani metriky (LTV, churn rate, repeat purchase rate) — mluvíme s CEO, ne s juniorním marketérem.</span><span class="tag tag-problem">H1 'Retention & CX' je holý label bez jakéhokoliv positioning claimu — nevypovídá nic o zodpovědnosti ani hodnotě Optimia.</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">Věta 'Vyměníme domněnky o vašich zákaznících za skutečná data.' je silná — používá akční sloveso, staví na kontrastu a naznačuje přechod od intuice k datům, což je blízko správnému tónu.</span><span class="tag tag-good">Zmínka o Interim CMO je relevantní pro positioning a odpovídá strategickému differenciátoru.</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Dejte nám vědět a my se vám ozveme. Probereme veškeré možnosti a ukážeme vám, jak takovou ponákupní komunikaci zvládnout.</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Přebíráme zodpovědnost za celý retenční cyklus — od první ponákupní komunikace až po systém věrnosti, který zvyšuje LTV a snižuje churn. Výsledky měříme v obratu, ne v odeslaných e-mailech.</div>
+          <div class="rewrite-reason">💡 Původní věta je pasivní výzva k akci bez zodpovědnosti a bez byznysového dopadu. Navržený přepis přebírá iniciativu, pojmenovává konkrétní výstupy (LTV, churn) a komunikuje jazykem CEO, nikoli jazykem dodavatele čekajícího na zadání.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="critical">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/nase-sluzby/creative" target="_blank">/nase-sluzby/creative</a>
+      <div><span class="card-divize">Kreativa</span></div>
+      <div class="card-h1">Creative</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-red">28</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔴 Zásadní nesoulad</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H1 a titulek 'Creative' je zcela generický — nekomunikuje žádný byznysový dopad ani differenciátor Optimia.</span><span class="tag tag-problem">H2 'Co nabízíme' je dodavatelský popis struktury služeb — odporuje pravidlu 'byznysový dopad, ne popis řemesla'.</span><span class="tag tag-problem">H3 nadpisy (Tvorba grafiky, Foto & video produkce, Motion design & animace atd.) jsou čistý popis řemesla bez jakéhokoliv napojení na výsledek nebo obrat klienta.</span><span class="tag tag-problem">Věta 'Dejte nám vědět a my se vám ozveme. Probereme veškeré možnosti a ukážeme vám, jak takovou ponákupní komunikaci zvládnout.' je pasivní nabídka bez zodpovědnosti — klient neví, co konkrétně získá.</span><span class="tag tag-problem">Věta o Interim CMO je nekonzistentní s kontextem stránky Kreativy — působí jako vložený generický blok z jiné stránky, nesouvisí s kreativní divizí.</span><span class="tag tag-problem">Text o account managerovi ('K rukám vám bude zkušený account...') popisuje proces a interní organizaci — ne byznysový výsledek pro klienta.</span><span class="tag tag-problem">Chybí jakákoli zmínka o datech, analýze chování zákazníků nebo měřitelném dopadu kreativy na konverze — přitom strategie explicitně říká: 'Kreativa nevzniká od estetiky — vzniká z dat o chování zákazníků.'</span><span class="tag tag-problem">Zakázaný myšlenkový vzor 'Popis řemesla místo dopadu' — celá sekce H3 je přesně tento vzor.</span><span class="tag tag-problem">Vágní slib v perexu 'Odlište se kreativitou, která má výsledky.' — co přesně za výsledky? Žádná konkrétní metrika, žádná zodpovědnost.</span><span class="tag tag-problem">Litmus test selhal na všech 5 otázkách: chybí explicitní byznysový výsledek, zodpovědnost, hlas není adekvátní pro CEO/CMO, struktura je juniorní příručka služeb.</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">Perex 'Odlište se kreativitou, která má výsledky.' obsahuje zárodek správného směru — slovo 'výsledky' je relevantní, ale zůstává prázdné bez konkretizace.</span><span class="tag tag-good">Zmínka o spolupráci divizí naznačuje integrovaný přístup, který je pro positioning Optimia relevantní — jen chybí napojení na dopad.</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Co nabízíme
+
+Influencer marketing & UGC
+Print (tvorba obalových materiálů, ...)
+Foto & video produkce
+Motion design & animace
+Tvorba grafiky
+Obsahová a komunikační strategie</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Kreativa, která prodává — ne jen vypadá dobře.
+
+Každý vizuál, video nebo kampaň v Optimiu vzniká z dat o chování vašich zákazníků — ne z estetického názoru. Měříme dopad každého kreativního výstupu na konverze, ROAS a obratové cíle. Kreativa je pro nás výkonnostní nástroj, za jehož výsledek přebíráme odpovědnost.
+
+Influencer marketing & UGC — autentický obsah s měřitelným dopadem na akvizici
+Foto & video produkce — vizuály navržené pro maximální konverzní výkon
+Motion design & animace — dynamický obsah optimalizovaný pro výkon v placených kanálech
+Grafika a obsahová strategie — každý výstup zarovnaný na obchodní cíle firmy</div>
+          <div class="rewrite-reason">💡 Původní struktura je čistý katalog řemesel bez jediné zmínky o dopadu na byznys klienta. Rewrite aplikuje klíčové pravidlo strategie: kreativa vzniká z dat, má měřitelný výstup a Optimio za něj ručí. H3 nadpisy jsou přepsány tak, aby každý komunikoval výsledek, ne popis činnosti — v souladu s tabulkou divize Kreativa ze sekce 5 strategie.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="critical">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/nase-sluzby" target="_blank">/nase-sluzby</a>
+      <div><span class="card-divize">Přehled služeb</span></div>
+      <div class="card-h1">Stačí znát cíl,my najdeme řešení</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-red">32</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔴 Zásadní nesoulad</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H1 'Stačí znát cíl, my najdeme řešení' je pasivní a vágní — chybí zodpovědnost, konkrétní výsledek a byznysový dopad. Odpovídá spíše pozici dodavatele čekajícího na zadání, ne strategického partnera.</span><span class="tag tag-problem">Úvodní věta 'Zajistíme vám vše od návrhu marketingové strategie až po její bezchybné provedení' je přehled aktivit, nikoli popis byznysového výsledku — přesně zakázaný vzor 'popis řemesla místo dopadu'.</span><span class="tag tag-problem">Formulace 'nabídne jasné kroky k řešení' je alibistická a hedgující — Optimio nenavrhuje kroky, Optimio přebírá zodpovědnost a dodává výsledky.</span><span class="tag tag-problem">Věta 'Někdy stačí pár týdnů se správným člověkem na palubě, aby se věci začaly hýbat správným směrem' je neformální až trivializující — snižuje vnímanou hodnotu Interim CMO modelu a postrádá jakýkoli byznysový kontext.</span><span class="tag tag-problem">CTA text 'Probereme veškeré možnosti a ukážeme vám, jak takovou ponákupní komunikaci zvládnout' obsahuje slabé, vágní sloveso 'zvládnout' a neurčitý výraz 'veškeré možnosti' — žádný závazek, žádný výsledek.</span><span class="tag tag-problem">Chybí jakákoli zmínka o ROI, obratových cílech, měřitelnosti nebo zodpovědnosti za výsledek — ani jeden text neprojde litmus testem otázky č. 1 (byznysový výsledek).</span><span class="tag tag-problem">H2 'Nabídka služeb' je generický nadpis bez jakékoli strategické hodnoty — neříká nic o tom, co klient získá.</span><span class="tag tag-problem">Žádný z textů nehovoří k mentálnímu profilu CEO/CMO — tón je blíže obecné prezentaci agentury než komunikaci strategického partnera na úrovni C-suite.</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">Struktura stránky správně pokrývá klíčové divize Optimia (Interim CMO, PPC, Media, Creative, Retention, SEO) — základ pro strategicky silný obsah je přítomen.</span><span class="tag tag-good">Zmínka o Interim CMO jako samostatné službě je v souladu s klíčovým differenciátorem Optimia.</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Stačí znát cíl, my najdeme řešení</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Přebíráme zodpovědnost za váš marketingový výkon — od strategie po měřitelné obchodní výsledky.</div>
+          <div class="rewrite-reason">💡 Původní H1 staví Optimio do role reaktivního dodavatele, který čeká na cíl od klienta. Navržená verze okamžitě komunikuje zodpovědnost a byznysový dopad — dvě klíčové hodnoty pozicioningu. Akční sloveso 'přebíráme' a spojení 'měřitelné obchodní výsledky' přesně odpovídají tónovým vzorům ze strategie a oslovují CEO/CMO, kteří hledají partnera, ne vykonavatele.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="critical">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/nase-sluzby/digital-advertising/videokampane" target="_blank">/nase-sluzby/digital-advertising/videokampane</a>
+      <div><span class="card-divize">PPC / Video</span></div>
+      <div class="card-h1">Videokampaně</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-red">32</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔴 Zásadní nesoulad</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H1 'Videokampaně' je holý popis formátu bez jakéhokoli byznysového dopadu — CEO z něj nezjistí nic o tom, co firma získá.</span><span class="tag tag-problem">H2 'Jak Videokampaně pomohou vašemu businessu' je vágní slib bez konkrétního výsledku — strategie explicitně zakazuje formulace 'Pomůžeme vám' bez měřitelného závazku.</span><span class="tag tag-problem">Úvodní věta 'Pomůžeme vám využít jeho sílu' je alibistická formulace — Optimio nezkouší pomoci, Optimio dodává výsledek.</span><span class="tag tag-problem">Druhá bullet věta 'Video je nejpoutavější formát, který dokáže oslovit emoce i rozum zákazníků' popisuje vlastnost formátu, nikoli byznysový dopad pro klienta — jde o popis řemesla.</span><span class="tag tag-problem">H3 'Zvýšíme zapamatovatelnost značky' a 'Oslovíme publikum na správných místech' jsou dodavatelské aktivity, nikoli byznysové výsledky — chybí vazba na obrat, konverze nebo ROI.</span><span class="tag tag-problem">Bullet 'Vaše videa dokážeme zobrazovat na YouTube, ve streamovacích službách i v obsahových sítích' je čistý popis technické činnosti bez dopadu na byznys klienta.</span><span class="tag tag-problem">Bullet 'Video synergicky posiluje efekt PPC, RTB a dalších kanálů' je odborný popis mechanismu, nikoli výsledek — klient neví, co to znamená pro jeho obrat.</span><span class="tag tag-problem">Metriky 'View rate, zásah i brand lift' jsou kampaňové KPI bez přímé vazby na obchodní výsledek — strategie vyžaduje jazyk ROI a obratu, ne výkon kampaně.</span><span class="tag tag-problem">H3 'Spojíme brand a výkon v jeden příběh' je metaforická, vágní formulace — strategie zakazuje vyprávěcí přístup bez konkrétního výstupu.</span><span class="tag tag-problem">Celková stránka postrádá jakékoli číselné ukotvení, závazek za výsledek nebo zmínku o odpovědnosti Optimia — jde o typický dodavatelský výčet aktivit.</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">H3 'Získáte měřitelné výsledky' správně naznačuje orientaci na data a měřitelnost — jde správným směrem.</span><span class="tag tag-good">Zmínka o brand lift jako měřítku je krok správným směrem, i když chybí byznysový kontext.</span><span class="tag tag-good">H3 'Přizpůsobíme formáty cílům kampaně' alespoň naznačuje, že přístup je cílově orientovaný, nikoli šablonový.</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Video je nejpoutavější formát online reklamy. Pomůžeme vám využít jeho sílu pro budování značky i podporu prodejů.</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Video kampaně řídíme jako výkonnostní nástroj s přímou vazbou na obchodní cíle — budování značky měříme brand liftem, podporu prodejů měříme ROAS. Každá koruna investovaná do videa má měřitelný výstup.</div>
+          <div class="rewrite-reason">💡 Původní věta je dodavatelská a alibistická — 'pomůžeme využít sílu' je vágní slib bez závazku. Navržený přepis přebírá odpovědnost za výsledek, zavádí jazyk ROI (ROAS, brand lift) a odpovídá mentálnímu profilu CEO, který chce vědět, co z toho jeho firma vydělá — nikoli slyšet chválu na formát.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="critical">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/nase-sluzby/digital-advertising/social-ads" target="_blank">/nase-sluzby/digital-advertising/social-ads</a>
+      <div><span class="card-divize">PPC / Social Ads</span></div>
+      <div class="card-h1">Social Ads</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-red">34</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔴 Zásadní nesoulad</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H1 a titulek 'Social Ads' je prázdný — neříká nic o byznysovém dopadu ani o pozicioningu Optimia jako strategického partnera.</span><span class="tag tag-problem">Zakázaná fráze 'Pomůžeme vám růst dlouhodobě a udržitelně' (H3) — vágní slib bez konkrétního výsledku, přesný příklad ze sekce 4 strategie.</span><span class="tag tag-problem">Zakázaná fráze 'Pomůžeme vám využít potenciál' — alibistické, bez zodpovědnosti, odpovídá vzoru 'pasivní nabídka'.</span><span class="tag tag-problem">Zakázaná fráze 'Pomáhá prodávat' — vágní, bez čísla, bez závazku, chybí byznysový kontext.</span><span class="tag tag-problem">Úvodní věta 'Vaši zákazníci tráví na sociálních sítích mnoho času a my zajistíme, aby tam viděli i vás' — orientuje se na návštěvnost a viditelnost, nikoli na obrat, ROAS nebo konverzní výsledky. Strategie explicitně zakazuje popis návštěvnosti bez byznysového kontextu.</span><span class="tag tag-problem">H3 'Zvýšíme návratnost investic' je správný směr, ale samotný text pod ním ('Sledujeme data a průběžně ladíme kampaně tak, abychom z rozpočtu vytěžili maximum') neobsahuje žádný konkrétní výstup — je to popis aktivity, ne zodpovědnosti za výsledek.</span><span class="tag tag-problem">H3 'Oslovíme správné publikum' a jeho text ('Využíváme přesné cílení, abychom zasáhli lidi, kteří se o váš produkt opravdu zajímají') popisuje řemeslo a proces, nikoli byznysový dopad — klient se nedoví, co z toho jeho firma vydělá.</span><span class="tag tag-problem">H3 'Zajistíme jednotnou komunikaci' a odpovídající text řeší konzistenci vizuálu — popis řemesla bez dopadu na obchodní výsledky firmy.</span><span class="tag tag-problem">Celková stránka zcela postrádá zmínku o ROAS, obratových cílech, přímé vazbě na výsledky firmy nebo zodpovědnosti Optimia — klíčové atributy PPC divize dle strategie.</span><span class="tag tag-problem">Tón je místy juniorský a edukatívní ('každá reklama má smysl i styl') místo sebevědomého C-suite partnera.</span><span class="tag tag-problem">Žádná věta nepřebírá explicitní zodpovědnost — vše je formulováno jako aktivita nebo snaha, nikoli jako závazek.</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">H3 'Zvýšíme návratnost investic' je správně orientovaný na byznysový výsledek — byť text pod ním závazek nenaplňuje.</span><span class="tag tag-good">Zmínka o konkrétních platformách (Meta, LinkedIn, TikTok, Pinterest) dodává textu věcnost a relevanci.</span><span class="tag tag-good">H2 'Jak Social Ads pomůže vašemu businessu' naznačuje správnou orientaci na výsledek, i když obsah tento slib nenaplňuje.</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Vaši zákazníci tráví na sociálních sítích mnoho času a my zajistíme, aby tam viděli i vás. Pomůžeme vám využít potenciál placené propagace napříč platformami Meta, LinkedIn, TikTok nebo Pinterest a přetavit ji v reálné výsledky pro váš byznys.</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Řídíme Social Ads kampaně na Meta, LinkedIn, TikToku a Pinterestu s přímou vazbou na vaše obratové cíle. Neprodáváme zobrazení — přebíráme zodpovědnost za ROAS a výkonnost každé koruny investované do placené propagace.</div>
+          <div class="rewrite-reason">💡 Původní text popisuje aktivitu a využívá zakázaný vzor 'pomůžeme využít potenciál' bez závazku. Navržený rewrite přebírá zodpovědnost za výsledek (ROAS, obratové cíle), používá silná akční slovesa ('řídíme', 'přebíráme') a explicitně odmítá metriku pouhé viditelnosti — v souladu se strategií PPC divize a litmus testem bodů 1 a 2.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="critical">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/nase-sluzby/interim-cmo" target="_blank">/nase-sluzby/interim-cmo</a>
+      <div><span class="card-divize">Strategie / Interim CMO</span></div>
+      <div class="card-h1">Interim CMO</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-red">34</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔴 Zásadní nesoulad</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H1 'Interim CMO' bez jakéhokoli kontextu nebo podtitulu — nesděluje žádný byznysový dopad ani positioning Optimia.</span><span class="tag tag-problem">Podtitulek 'Dočasný marketingový lídr, který firmě vrátí správný směr.' — slovo 'dočasný' oslabuje pozici Interim CMO jako strategického partnera; 'vrátí správný směr' je vágní slib bez konkrétního výsledku.</span><span class="tag tag-problem">Alibistické formulace: 'pomůže vám', 'Pomůže vám s výběrem' — Optimio nepomáhá, Optimio přebírá odpovědnost a dodává.</span><span class="tag tag-problem">Zakázaná fráze 'Nastaví strategii a zajistí její realizaci' — popisuje aktivitu/řemeslo, ne byznysový dopad. Klienta nezajímá, že se něco nastaví, ale co to firmě přinese.</span><span class="tag tag-problem">Věta 'Vybere marketingové kanály, které v rámci strategii skutečně pomohou.' — gramatická chyba ('v rámci strategii'), navíc popis aktivity bez výsledku.</span><span class="tag tag-problem">Duplicitní H3 'Dá vám jasná čísla, která ukazují výsledky' — stejný nadpis se opakuje dvakrát, pravděpodobně technická chyba, ale signalizuje nedbalost.</span><span class="tag tag-problem">Celá sekce 'S čím pomůže Interim CMO' je strukturována jako seznam úkolů/aktivit (co CMO dělá), nikoli jako seznam byznysových výstupů (co firma získá).</span><span class="tag tag-problem">Chybí jakékoli konkrétní číslo, ROI reference nebo měřitelný výstup — přitom strategie vyžaduje přímou vazbu na obrat, ROAS nebo jiný byznysový ukazatel.</span><span class="tag tag-problem">Tón je dodavatelský a pasivní: 'zjistí', 'nastaví', 'připraví', 'vybere' — místo akčního, zodpovědnostního jazyka: 'přebíráme', 'řídíme', 'garantujeme', 'dosahujeme'.</span><span class="tag tag-problem">Text 'Připraví vám reporty, které budou mluvit v jasných číslech.' — triviální, popis outputu bez kontextu dopadu; reporty jsou nástroj, ne výsledek.</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">Téma stránky (Interim CMO) je v souladu s core positioning Optimia — jde o klíčovou differenciátorskou službu.</span><span class="tag tag-good">Struktura sekce naznačuje snahu pokrýt klíčové oblasti (strategie, tým, data) — záměr je správný, jen exekuce textu selhává.</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Dočasný marketingový lídr, který firmě vrátí správný směr.</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Přebíráme plnou zodpovědnost za váš marketing — od strategie po exekuci. Interim CMO od Optimia řídí marketing jako byznys funkci: s měřitelnými cíli, přímou vazbou na obrat a jasnou odpovědností za výsledek.</div>
+          <div class="rewrite-reason">💡 Původní věta používá slovo 'dočasný', které podkopává vnímání hodnoty služby, a nabízí vágní slib bez konkrétního výstupu. Navržený přepis okamžitě komunikuje zodpovědnost (klíčový differenciátor Optimia), byznysový dopad (vazba na obrat) a eliminuje dodavatelský tón. Zároveň odstraňuje pasivní framing a nahrazuje ho akčním jazykem v souladu s tónovými vzory strategie.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="critical">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io" target="_blank"></a>
+      <div><span class="card-divize">Homepage</span></div>
+      <div class="card-h1">Tvoříme strategie, které dokazují svůj úspěch na datech</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-red">38</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔴 Zásadní nesoulad</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">Přísně zakázané slovo 'fullservisového' (varianta 'full-service') se přímo vyskytuje v textu — jde o hard ban dle strategie.</span><span class="tag tag-problem">H1 'Tvoříme strategie, které dokazují svůj úspěch na datech' popisuje aktivitu Optimia, nikoli byznysový výsledek klienta. Chybí odpověď na otázku 'co z toho firma vydělá nebo ušetří?'</span><span class="tag tag-problem">Věta 'jsme tu pro vás' je pasivní nabídka dodavatelského typu — Optimio nečeká na zadání, ale přebírá odpovědnost a řídí.</span><span class="tag tag-problem">Věta 'abychom vám přinesli výsledky, které opravdu posunou váš byznys' je vágní slib bez konkrétního čísla, časového rámce nebo měřitelného výstupu — zakázaný vzor dle sekce 4.</span><span class="tag tag-problem">Popis '40+ specialistů pro váš růst' a 'Pracujeme jako tým, který čítá více jak 40 odborníků' komunikuje kapacitu a velikost, nikoli zodpovědnost nebo byznysový dopad — jde o popis řemesla místo dopadu.</span><span class="tag tag-problem">Věta 'Spojujeme kreativitu, data a technologie' je generické klišé bez diferenciace — mohl by to říct kdokoli, chybí signatura Optimia jako strategického partnera s odpovědností za výsledek.</span><span class="tag tag-problem">H3 nadpis 'Jak jsme pomohli UNIQA...' obsahuje formulaci 'Pomoci umíme i vám!' — jde o pasivní nabídku a přílišně přátelský, nestrategický tón, který neodpovídá 70% formální poloze.</span><span class="tag tag-problem">Výsledky v bullet pointech (55% růst, 60% navýšení z organiku) jsou správně uvedeny, ale bez kontextu — chybí atribuce co přesně Optimio řídilo a za co převzalo odpovědnost, působí jako showcase aktivit, ne jako důkaz systémového řízení.</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">Konkrétní čísla v case study bullet pointech (55% růst tržeb, 60% navýšení z organiku) jsou správným směrem — byznysový výsledek je měřitelný a uveden v kontextu.</span><span class="tag tag-good">Statistika '95 % klientů s námi zůstává' nepřímo komunikuje důvěru a dlouhodobé partnerství — je v souladu s pozicioningem partnera, nikoli dodavatele.</span><span class="tag tag-good">Zmínka 'Stali jsme se jejich business partnery a konzultanty' správně signalizuje posun od dodavatele k partnerovi — odpovídá strategické kotevní větě.</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Tvoříme strategie, které dokazují svůj úspěch na datech</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Přebíráme odpovědnost za váš marketingový výkon — a měříme ji jedinou metrikou, na které záleží: růstem vašeho obratu.</div>
+          <div class="rewrite-reason">💡 Původní H1 popisuje aktivitu Optimia ('tvoříme strategie') a abstraktní vlastnost ('dokazují úspěch na datech'), ale neříká nic o tom, co klient — CEO nebo CMO — konkrétně získá. Navržený přepis okamžitě komunikuje zodpovědnost (klíčový differenciátor Optimia), byznysový výsledek (obrat) a eliminuje pasivní, popisný tón. Je v souladu s tónovými vzory ze sekce 3 a přímo odráží interní kotevní větu pozicioningu.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="critical">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/nase-sluzby/digital-advertising/zbozove-srovnavace" target="_blank">/nase-sluzby/digital-advertising/zbozove-srovnavace</a>
+      <div><span class="card-divize">PPC / Srovnávače</span></div>
+      <div class="card-h1">Zbožové srovnávače</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-red">38</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔴 Zásadní nesoulad</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H1 a titulek 'Zbožové srovnávače' je holý popis nástroje — žádný byznysový dopad, žádná zodpovědnost, žádný positioning.</span><span class="tag tag-problem">H2 'Jak Zbožové srovnávače pomohou vašemu businessu' je pasivní a dodavatelská formulace — Optimio nepomáhá, Optimio přebírá odpovědnost a dodává výsledky.</span><span class="tag tag-problem">Zakázané slovo/vzor: 'Pomůžeme vám zde vyniknout' — alibistická formulace blízká zakázanému vzoru 'Pomůžeme vám růst', bez konkrétního závazku.</span><span class="tag tag-problem">Zakázaný vzor: 'Přivedeme zákazníky' bez kontextu obratu/ROI — popis návštěvnosti bez byznysového výstupu (přesně definovaný hard ban v sekci 4).</span><span class="tag tag-problem">Věta 'Produkty se zobrazí na předních pozicích' je popis aktivity/řemesla, nikoli byznysový výsledek — klienta nezajímá pozice, zajímá ho obrat.</span><span class="tag tag-problem">Věta 'Vytvoříme souhru mezi různými kanály pro maximální efekt' je vágní slib bez měřitelného výstupu — 'efekt' není definovaný, porušuje pravidlo konkrétnosti.</span><span class="tag tag-problem">Věta 'Na srovnávačích hledají lidé, kteří chtějí opravdu nakoupit' je marketingová trivialita — CEO toto ví, text ho neučí, ale má přebírat zodpovědnost.</span><span class="tag tag-problem">Tón celé stránky odpovídá junior příručce a pasivní nabídce — chybí hlas Interim CMO/strategického partnera, vše je na úrovni 'zadáte nám práci, my ji uděláme'.</span><span class="tag tag-problem">Žádný text neobsahuje explicitní zmínku o zodpovědnosti za výsledek — Optimio nikde neručí, jen popisuje, co udělá.</span><span class="tag tag-problem">Chybí jakákoli vazba na ROAS, obratové cíle nebo měřitelný ROI — přitom PPC divize musí podle strategie komunikovat 'každá koruna má měřitelný výstup'.</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">H3 'Snížíme podíl nákladů na obratu optimalizací feedu' je jediný nadpis, který se blíží byznysovému dopadu — zmiňuje konkrétní metriku (PNO) a příčinu (feed).</span><span class="tag tag-good">H3 'Zvýšíte obrat e-shopu' správně pojmenovává finální byznysový výsledek, i když podpůrný text tuto ambici vůbec nenaplňuje.</span><span class="tag tag-good">H3 'Přivedeme zákazníky s vysokým záměrem' správně pracuje s konceptem nákupního záměru, který je relevantní pro CEO uvažující o konverzích.</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Vaši zákazníci hledají produkty na Heurece, Zboží.cz a dalších srovnávačích. Pomůžeme vám zde vyniknout a dovést zákazníky přímo k nákupu.</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Heuréka, Zboží.cz a další srovnávače jsou kanály s nejvyšším nákupním záměrem v českém e-commerce — zákazník zde již rozhoduje, ne jen prohlíží. Přebíráme kompletní řízení vašich produktových kampaní na srovnávačích: od struktury feedu přes strategii bidování až po přímou vazbu na obratové cíle. Každá koruna investovaná do srovnávačů má měřitelný výstup — a za ten ručíme.</div>
+          <div class="rewrite-reason">💡 Původní věta je dodavatelská a alibistická ('Pomůžeme vám'), nezmiňuje zodpovědnost ani ROI. Rewrite zavádí hlas strategického partnera, explicitně přebírá odpovědnost za výsledek, propojuje aktivitu s obratovými cíli a zmiňuje měřitelnost — v souladu s positioning Optimia jako Interim CMO a s pravidlem PPC divize ze sekce 5 strategie.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="critical">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/nase-sluzby/digital-advertising/rtb" target="_blank">/nase-sluzby/digital-advertising/rtb</a>
+      <div><span class="card-divize">PPC / RTB</span></div>
+      <div class="card-h1">Programmatic - RTB</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-red">38</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔴 Zásadní nesoulad</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H1 a titulek 'Programmatic - RTB' je pouhý popis nástroje bez jakéhokoli byznysového kontextu nebo příslibu výsledku — klient neví, co mu to přinese.</span><span class="tag tag-problem">Úvodní věta 'Chcete cílit efektivně a automatizovaně napříč celým online prostředím?' je otázka orientovaná na nástroj, ne na byznysový výsledek — porušuje pravidlo 'nejdřív výsledek, pak kontext'.</span><span class="tag tag-problem">Zakázaná fráze a myšlenkový vzor: 'Programmatic umožní oslovit uživatele napříč weby, aplikacemi i médii' — popis řemesla a technologie místo dopadu na obrat nebo ROI.</span><span class="tag tag-problem">Zakázaný vzor 'popis návštěvnosti bez kontextu': 'Reklamy se zobrazí jen těm, u kterých je největší šance na interakci či nákup' — interakce není byznysový výsledek, chybí vazba na konverze, ROAS nebo obrat.</span><span class="tag tag-problem">H3 nadpisy jako 'Efektivně zasáhneme široké publikum' nebo 'Zvýšíme zásah i efektivitu kampaní' hovoří o zásahu a aktivitě, ne o měřitelném dopadu na byznys.</span><span class="tag tag-problem">Alibistická formulace skrytá v pasivní struktuře: 'Display, video nebo audio kampaně budou součástí jednotné strategie' — popis aktivity bez příslibu výsledku, bez zodpovědnosti Optimia.</span><span class="tag tag-problem">Text neobsahuje žádnou vazbu na ROI, ROAS, obrat nebo měřitelný výstup — porušuje litmus test č. 1 (byznysový výsledek) i č. 2 (zodpovědnost).</span><span class="tag tag-problem">Tón textu odpovídá standardní agenturní nabídce, nikoli pozici strategického partnera na úrovni C-suite — chybí sebevědomí, přímočarost a drive charakteristické pro Optimio.</span><span class="tag tag-problem">H2 'Jak RTB pomůže vašemu businessu' je slabý, hedgující nadpis — slovo 'pomůže' je alibistické a nevyjadřuje zodpovědnost za výsledek.</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">Text se alespoň pokouší strukturovat výhody do oddělených bloků, což dává prostor pro byznysově orientovaný obsah.</span><span class="tag tag-good">Zmínka o brand safety ('Zajistíme, aby se vaše reklama zobrazovala jen v bezpečném a relevantním prostředí') naznačuje přebírání odpovědnosti — správný zárodek, ale nevyužitý potenciál.</span><span class="tag tag-good">Téma optimalizace v reálném čase a biddingu je relevantní pro cílovou skupinu CMO/CEO — je to správná oblast, špatně komunikovaná.</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Chcete cílit efektivně a automatizovaně napříč celým online prostředím? RTB programmatic reklama vám umožní oslovit správné publikum ve správný čas a na správném místě.</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Řídíme programmatic kampaně s přímou vazbou na obratové cíle — ne na prokliky nebo zásah. RTB v Optimiu funguje jako výkonnostní nástroj: každá zobrazená reklama je výsledkem datové analýzy publika, kontextu a nákupního záměru. Výsledek? Nižší CPM, vyšší ROAS a plná kontrola nad tím, kde a komu se vaše značka zobrazuje.</div>
+          <div class="rewrite-reason">💡 Původní text je otázka orientovaná na nástroj bez byznysového výsledku. Přepis okamžitě komunikuje zodpovědnost Optimia, vazbu na obrat a konkrétní měřitelné výstupy (CPM, ROAS) — v souladu s litmus testem č. 1 a č. 2 a tónovými vzory ze strategie.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="fail">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/reference/jak-jsme-u-klienta-laskakit-zvysili-loajalitu-zakazniku-a-nastartovali-vernostni-program" target="_blank">/reference/jak-jsme-u-klienta-laskakit-zvysili-loajalitu-zakazniku-a-nastartovali-vernostni-program</a>
+      <div><span class="card-divize">Reference (case study)</span></div>
+      <div class="card-h1">Jak jsme u klienta Láskakit zvýšili loajalitu zákazníků a nastartovali věrnostní program.</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-orange">42</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔶 Nevyhovuje</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H1 a celý text popisuje aktivity a proces ('nastartovali věrnostní program', 'jak jsme postupovali'), nikoli byznysový dopad pro klienta — chybí explicitní čísla, ROI nebo obratový výsledek již v úvodu</span><span class="tag tag-problem">Věta 'V té době jsme považovali e-mailing marketing za další kanál, které skvěle zapadne do online mixu' zní pasivně a dodavatelsky — Optimio se prezentuje jako přidavatel kanálu, ne jako strategický partner s odpovědností za výsledek</span><span class="tag tag-problem">Formulace 'Nastartovat nový kanál ale nebylo jen tak' je konverzační výplň bez byznysové hodnoty — odpovídá spíše blogovému příspěvku než autoritativní case study CMO-level partnera</span><span class="tag tag-problem">Chybí explicitní zodpovědnost Optimia za výsledek — text popisuje co se dělalo, ne za co Optimio ručilo a co firma skutečně získala</span><span class="tag tag-problem">Struktura nadpisů ('Jak jsme postupovali?', 'Co jsme museli udělat?') orientuje příběh na proces a aktivitu Optimia, nikoli na obchodní výsledek klienta — CEO čte case study kvůli výsledkům, ne kvůli popisu workflow</span><span class="tag tag-problem">Věta 'e-mailing marketing za další kanál, které skvěle zapadne do online mixu' obsahuje gramatickou chybu ('které' místo 'který') a slangový výraz 'online mix' bez kontextu hodnoty</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">Sekce 'Čeho jsme dosáhli? Jaký to mělo dopad na zákazníka?' naznačuje, že výsledková data v textu existují — správná struktura zakončení case study</span><span class="tag tag-good">Zmínka o customer lifetime value ukazuje orientaci na byznysový jazyk, nikoli jen na marketingové metriky</span><span class="tag tag-good">Konkrétní časový rámec spolupráce (konec roku 2021) a kontext vzniku klienta budují důvěryhodnost a autenticitu příběhu</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ S klientem Láskakit jsme začali v rámci retenčního marketingu spolupracovat koncem roku 2021. V té době jsme považovali e-mailing marketing za další kanál, které skvěle zapadne do online mixu, jež se u klienta doposud tvořil. Úvod spolupráce tak byl v duchu tvorby e-mail marketingové strategie, která měla za cíl do budoucna postupně tento kanál rozvíjet, budovat loajalitu zákazníků a zvyšovat jejich customer lifetime value.</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Ke konci roku 2021 jsme u LáskaKitu převzali zodpovědnost za retenční marketing — kanál, který do té doby v obchodním mixu chyběl a představoval nevyužitý zdroj opakovaných příjmů. Namísto izolovaného spuštění e-mailingu jsme od začátku budovali systém: strategii s jasným cílem zvýšit customer lifetime value, snížit závislost na akvizičních nákladech a vytvořit z jednonákupních zákazníků loajální komunitu.</div>
+          <div class="rewrite-reason">💡 Původní text popisuje aktivitu a chronologii spolupráce bez zodpovědnosti za výsledek. Přepis zasazuje vstup Optimia do kontextu byznysového problému (nevyužitý zdroj příjmů), explicitně přebírá odpovědnost ('převzali zodpovědnost') a formuluje cíl v jazyce obchodního dopadu (CLV, akvizační náklady, loajalita) — v souladu s tónem a požadavky strategie pro CEO-level cílovou skupinu.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="fail">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/reference/pribeh-o-10-uspore-kreditu-a-27-narustu-poctu-poptavek" target="_blank">/reference/pribeh-o-10-uspore-kreditu-a-27-narustu-poctu-poptavek</a>
+      <div><span class="card-divize">Reference (case study)</span></div>
+      <div class="card-h1">Příběh o 10% úspoře kreditu a 27% nárůstu počtu poptávek</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-orange">42</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔶 Nevyhovuje</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">Zakázaná fráze 'přebíráme do naší správy' a 'přebírali jsme' — dodavatelský jazyk bez zodpovědnosti za výsledek, chybí rámování jako strategického partnera/CMO</span><span class="tag tag-problem">Věta 'Na dosažení kvalitních výsledků nemáme žádnou kouzelnou poučku' působí alibisticky a podkopává sebevědomý tón Optimia — odporuje vzoru 'Optimio nezkouší, Optimio dodává'</span><span class="tag tag-problem">Fráze 'Nastavte si účet tak a onak a budete lepší. Takhle to nefunguje.' zní jako junior příručka nebo obranná rétorika — nekomunikuje autoritu C-suite partnera</span><span class="tag tag-problem">H1 sice obsahuje konkrétní čísla (10 % úspora, 27 % nárůst), ale rámuje výsledek jako 'příběh' a 'pohádku' — metaforický jazyk oslabuje byznysovou přímočarost a důvěryhodnost</span><span class="tag tag-problem">Výsledky jsou popsány v kontextu kampaní (Google Ads, Sklik), nikoliv jako byznysový dopad na obrat nebo obchodní výkonnost klienta — chybí vazba na ROI nebo obratové cíle</span><span class="tag tag-problem">Věta 'Cíl byl jasný – za stanovený rozpočet získat co nejvíce poptávek (konverzí)' popisuje aktivitu/zadání, ne zodpovědnost Optimia za výsledek</span><span class="tag tag-problem">H2 'Udržet setrvalý stav není žádná legrace' — vágní, bez byznysového obsahu, neprojde litmus testem č. 1 ani č. 2</span><span class="tag tag-problem">H2 'Cesta za dokonalým účtem – 8 kroků, bez kterých to nejde' — popis řemesla místo byznysového dopadu, zaměřeno na proces ne na výsledek klienta</span><span class="tag tag-problem">Slovo 'pohádku' v uvozovkách — trivializuje výsledek, neslučuje se s byznysovým, sebevědomým tónem Optimia</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">H1 obsahuje konkrétní měřitelná čísla (10 % úspora kreditu, 27 % nárůst poptávek) — správný směr, CEO ocení konkrétnost</span><span class="tag tag-good">Věta 'Snížili jsme náklady, zvýšili poptávku' je akční a výsledkově orientovaná — správný vzor silných akčních sloves</span><span class="tag tag-good">Kontext klienta (7 300 zákazníků, mzdový systém, rok 1990) dodává důvěryhodnost a rámuje zákaznický profil</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Snížili jsme náklady, zvýšili poptávku . Tuto "pohádku" by si přál vyslechnout snad každý klient. U Vemy se nám právě tento výsledek meziročně podařil. Na dosažení kvalitních výsledků nemáme žádnou kouzelnou poučku. Nastavte si účet tak a onak a budete lepší. Takhle to nefunguje. Za našimi výsledky stojí kvalitní příprava a spousta testování.</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ U Vemy jsme za 12 měsíců snížili náklady na proklik o 10 % a zároveň zvýšili počet kvalifikovaných poptávek o 27 %. Ne náhodou — přebírali jsme zodpovědnost za celkový výkon kampaní, ne jen za jejich správu. Každé rozhodnutí stálo na datech, každá změna měla měřitelný cíl. Výsledek je přímým důsledkem strukturovaného přístupu a systematického testování hypotéz s vazbou na obchodní výkonnost klienta.</div>
+          <div class="rewrite-reason">💡 Původní text trivializuje výsledek metaforou 'pohádky', působí alibisticky větou o neexistenci kouzelné poučky a popisuje proces místo zodpovědnosti. Navržený přepis rámuje výsledek jako přímý důsledek zodpovědného řízení, používá konkrétní čísla, akční slovesa a byznysový jazyk odpovídající profilu CEO/CMO cílové skupiny.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="fail">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/nase-sluzby/digital-advertising/brand-building" target="_blank">/nase-sluzby/digital-advertising/brand-building</a>
+      <div><span class="card-divize">PPC / Brand Building</span></div>
+      <div class="card-h1">Brand building</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-orange">42</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔶 Nevyhovuje</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">Alibistická formulace 'Pomůžeme vám vytvořit brand' — Optimio nepomáhá, přebírá zodpovědnost a dodává výsledek.</span><span class="tag tag-problem">Zakázaná fráze 'Pomůžeme' se opakuje i v H3 'Podpoříme dlouhodobý růst' — oba výrazy jsou hedging bez závazku.</span><span class="tag tag-problem">Úvodní věta 'Budování značky není luxus, ale nutnost!' je klišé a nevychází z byznysového dopadu — nezodpovídá otázku 'co firma vydělá nebo ušetří'.</span><span class="tag tag-problem">Texty popisují vlastnosti brandingu (loajalita, konzistence, cenová hladina), nikoli měřitelný byznysový výsledek pro konkrétní firmu — chybí vazba na obrat, ROAS nebo hodnotu firmy v číslech.</span><span class="tag tag-problem">Vykřičník v úvodní větě ('nutnost!') snižuje autoritativní tón — Optimio mluví z pozice seniority, ne z pozice přesvědčování.</span><span class="tag tag-problem">H2 'Jak Brand building pomůže vašemu businessu' obsahuje slovo 'pomůže' — dodavatelský, pasivní rámec místo partnerského závazku.</span><span class="tag tag-problem">Věta 'Jasně definovaný brand positioning vám pomůže vyniknout na trhu' je vágní slib bez konkrétního výstupu — co přesně? O kolik? Za jak dlouho?</span><span class="tag tag-problem">Celková struktura stránky popisuje řemeslo a jeho obecné benefity místo toho, aby komunikovala, za co Optimio ručí a co přesně klient získá.</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">H3 'Budete prodávat za vyšší cenu' je nejsilnější nadpis — přímý byznysový výsledek, bez omluv.</span><span class="tag tag-good">Věta o slevové spirále ('neztratit se ve slevové spirále') je konkrétní a rezonuje s CEO mentálním modelem.</span><span class="tag tag-good">H3 'Vytvoříme pevný základ pro všechny kampaně' správně ukazuje brand building jako strategický vstup do performance — dobrý směr.</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Budování značky není luxus, ale nutnost! Pomůžeme vám vytvořit brand, který bude lidem blízký, zapamatovatelný a dlouhodobě úspěšný.</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Silná značka není výsledek kreativního pocitu — je to byznysové aktivum, které snižuje závislost na reklamním rozpočtu, zvyšuje konverzní poměr kampaní a umožňuje firmě určovat cenu, nikoli se jí přizpůsobovat. Přebíráme zodpovědnost za to, že váš brand bude pracovat měřitelně pro váš obrat.</div>
+          <div class="rewrite-reason">💡 Původní věta je klišé s vágním slibem a alibistickým 'pomůžeme'. Navržený přepis okamžitě komunikuje byznysový dopad (ROI kampaní, cenová pozice, snížení závislosti na rozpočtu), přebírá zodpovědnost a zní jako strategický partner, nikoli jako agentura nabízející službu.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="fail">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/nase-sluzby/digital-advertising/ppc" target="_blank">/nase-sluzby/digital-advertising/ppc</a>
+      <div><span class="card-divize">PPC</span></div>
+      <div class="card-h1">PPC</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-orange">42</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔶 Nevyhovuje</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H1 a titulek jsou pouhé slovo 'PPC' — nulová byznysová hodnota, žádná kotva pro CEO/CMO</span><span class="tag tag-problem">Zakázané slovo 'Přivedeme' v kontextu návštěvnosti bez byznysového výsledku — 'Přivedeme na váš web nové zákazníky' říká přesně to, co strategie zakazuje: popis provozu bez vazby na zisk</span><span class="tag tag-problem">Věta 'Kampaně zajistí rychlou viditelnost a návštěvnost s vysokým konverzním potenciálem' popisuje aktivitu a potenciál, ne reálný dopad — alibistický tón ('potenciál')</span><span class="tag tag-problem">H2 'Jak PPC pomůže vašemu businessu' je dodavatelský rámec — Optimio nepomáhá, přebírá zodpovědnost za výsledek</span><span class="tag tag-problem">Věta 'Optimalizací biddingů a cílení dosáhneme nižší ceny za konverzi' popisuje řemeslo (bidding, cílení) místo byznysového dopadu — junior příručka</span><span class="tag tag-problem">Věta 'Investujeme s jasným cílem. Kontinuálně měříme a optimalizujeme.' je vágní a chybí konkrétní výstup — co klient vydělá nebo ušetří?</span><span class="tag tag-problem">Chybí explicitní převzetí zodpovědnosti za výsledek — žádná věta neříká, za co Optimio ručí</span><span class="tag tag-problem">Chybí vazba na ROAS, obratové cíle nebo konkrétní měřitelné výstupy, jak vyžaduje strategie pro PPC divizi</span><span class="tag tag-problem">Tón celé stránky je pasivní nabídka — 'zajistíme, přivedeme, umožníme' bez odpovědnostního rámce</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">H3 'Snížíme cenu za akvizici' se blíží správnému byznysovému framing — akvizice má finanční kontext</span><span class="tag tag-good">H3 'Budete mít výkon pod kontrolou' pracuje s pojmem kontroly, což rezonuje s CEO profilem</span><span class="tag tag-good">Existuje case study sekce (Znovín) — důkazní materiál je správný strategický prvek</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Potřebujete okamžitý výkon a jasně měřitelné výsledky? Přivedeme na váš web nové zákazníky a zvýšíme konverze.</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Řídíme výkonnostní kampaně s přímou vazbou na ROAS a obratové cíle. Každá investice do PPC má u nás měřitelný výstup — přebíráme zodpovědnost za výsledek, ne jen za správu účtu.</div>
+          <div class="rewrite-reason">💡 Původní věta padá do zakázaného vzoru — popis návštěvnosti bez kontextu zisku a pasivní nabídka bez zodpovědnosti. Navržený text přebírá odpovědnost za výsledek, používá správnou terminologii (ROAS, obratové cíle) a odpovídá profilu CEO/CMO, který hodnotí podle čísel, ne aktivity.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="fail">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/reference/od-jedne-kampane-k-celkove-sprave-v-8-zemich-jak-jsme-s-dalap-ventilatory-cz-rozvirili-komunikaci" target="_blank">/reference/od-jedne-kampane-k-celkove-sprave-v-8-zemich-jak-jsme-s-dalap-ventilatory-cz-rozvirili-komunikaci</a>
+      <div><span class="card-divize">Reference (case study)</span></div>
+      <div class="card-h1">Od jedné kampaně k celkové správě v 8 zemích: jak jsme s Dalap (Ventilátory.cz) rozvířili komunikaci</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-orange">52</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔶 Nevyhovuje</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">Klíčový odstavec 'Za úspěchem nehledejte složité formulky. Spolupráce šlape díky důvěře, vzájemné empatii a bleskové komunikaci. Samozřejmost, nebo ne?' je vágní a neukazuje žádný byznysový výsledek — zní jako přátelský storytelling bez zodpovědnosti nebo dat.</span><span class="tag tag-problem">H1 a většina nadpisů jsou narativní a novinářské ('rozvířili komunikaci', 'provětrali komunikaci', 'generální úklid'), ale chybí jim explicitní byznysový dopad — neodpovídají na otázku 'co z toho klient získal?'</span><span class="tag tag-problem">Úvodní popis klienta ('Mezinárodní skupina Dalap se zabývá prodejem ventilátorů a vzduchotechniky') je čistě popisný a nenese žádnou vazbu na výkon nebo výsledek spolupráce.</span><span class="tag tag-problem">Věta 'Dalap potřeboval optimalizovat PPC reklamu, protože kampaně nepřinášely výsledky podle představ' popisuje problém pasivně a bez Optimio přebírající aktivní roli — chybí drive a zodpovědnost.</span><span class="tag tag-problem">Výsledek '6× vyšší tržby v Německu' je uveden pouze v H2, ale v dostupných textech není podložen žádnými konkrétními čísly, časovým rámcem ani kontextem — zůstává jen v nadpisu bez obsahu.</span><span class="tag tag-problem">Fráze 'spolupráce šlape' a 'bleskové komunikaci' jsou hovorové výrazy snižující seniorní a byznysový tón Optimia — nesedí do 70 % formálního registru.</span><span class="tag tag-problem">Text neobsahuje žádný explicitní popis toho, co Optimio přebralo za odpovědnost — pouze popisuje sled aktivit (PPC v Německu, Heureka, rozšíření na 6 a pak 8 zemí).</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">H2 'S dobrým parťákem k 6× vyšším tržbám v Německu' obsahuje konkrétní měřitelný výsledek (6×) — to je správný směr a soulad s byznysovým jazykem strategie.</span><span class="tag tag-good">Příběh postupného rozšiřování spolupráce (od 1 země k 8) je strukturálně silný a ukazuje důvěru klienta v Optimio — dobré východisko pro přepis s důrazem na odpovědnost.</span><span class="tag tag-good">Case study formát je správnou volbou pro tuto cílovou skupinu (CEO/CMO) — reference jsou relevantní rozhodovací podklad.</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Za úspěchem nehledejte složité formulky. Spolupráce šlape díky důvěře, vzájemné empatii a bleskové komunikaci. Samozřejmost, nebo ne?</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Výsledky nestojí na náhodě. Přebírali jsme odpovědnost za výkon kampaní trh po trhu — s jasnou strategií, měřitelnými cíli a přímou vazbou na obratové výsledky klienta. Za pět let jsme ze správy jednoho trhu vybudovali funkční marketingový systém pro 8 evropských zemí.</div>
+          <div class="rewrite-reason">💡 Původní věty jsou vágní, hovorové a neodpovídají na otázku co Optimio konkrétně přineslo. Chybí zodpovědnost, byznysový výsledek i sebevědomý tón. Navržený přepis přebírá aktivní roli, komunikuje systémový přístup a napojuje výkon na obchodní výsledek — v souladu se strategií.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="fail">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/reference" target="_blank">/reference</a>
+      <div><span class="card-divize">Reference (case study)</span></div>
+      <div class="card-h1">Reference</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-orange">52</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔶 Nevyhovuje</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H1 'Reference' je zcela generický a dodavatelský — neříká nic o byznysovém dopadu, zodpovědnosti ani o tom, co klient získá. Chybí positioning Optimia jako strategického partnera.</span><span class="tag tag-problem">H2 'Naše výsledky v číslech' je správný směr, ale bez konkrétních čísel přímo v nadpisu působí jako prázdný slib — vágní formulace bez okamžitého dopadu.</span><span class="tag tag-problem">H3 'Jak jsme pomohli UNIQA odhalit tajemství konkurence...' obsahuje alibistické a neformální vyznění ('tajemství') a call-to-action 'Pomoci umíme i vám!' zní jako nabídka dodavatele, nikoliv sebevědomého strategického partnera — navíc slovo 'pomohli' odkazuje na podřízenou roli.</span><span class="tag tag-problem">Text 'Dejte nám vědět a my se vám ozveme. Probereme veškeré možnosti a ukážeme vám, jak takovou ponákupní komunikaci zvládnout.' je pasivní, vágní a dodavatelský — chybí zodpovědnost, konkrétní výstup a byznysový příslib. Formulace 'probereme možnosti' je alibistická.</span><span class="tag tag-problem">Text 'Jsme tu pro klienty z oblasti B2C a B2B e-commerce...' popisuje segmenty, ale neříká, co Optimio těmto klientům přinese — chybí byznysový výsledek a zodpovědnost za výkon.</span><span class="tag tag-problem">H2 'Tvůj projekt může být mezi nimi' — neformální 'Tvůj' je v rozporu s 70% formálním tónem strategie, navíc formulace je pasivní a neurčitá místo přímého vybídnutí s byznysovým příslibem.</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">Nadpisy case studies (H3) pracují s konkrétními čísly — '9 % na tržbách', '10% úspora kreditu', '27% nárůst počtu poptávek' — to odpovídá požadavku na měřitelný byznysový dopad a datový jazyk.</span><span class="tag tag-good">Zaměření na B2C, B2B e-commerce a lead generation správně signalizuje cílovou skupinu a ambice klientů (růst, expanze).</span><span class="tag tag-good">Case study o Dalap (8 zemí) naznačuje mezinárodní zkušenost a škálovatelnost — relevantní differenciátor.</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Dejte nám vědět a my se vám ozveme. Probereme veškeré možnosti a ukážeme vám, jak takovou ponákupní komunikaci zvládnout.</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Váš projekt si zaslouží stejně měřitelné výsledky. Řeknete nám, co chcete dosáhnout — my navrhneme strategii s jasnou vazbou na obrat a převezmeme zodpovědnost za její výkon.</div>
+          <div class="rewrite-reason">💡 Původní text je pasivní, alibistický a dodavatelský — 'probereme možnosti' a 'ukážeme, jak zvládnout' vyjadřují nejistotu a přesouvají zodpovědnost na klienta. Přepis staví Optimio do role strategického partnera, který přebírá odpovědnost za výsledek, pracuje s byznysovým cílem klienta a mluví jazykem ROI — v souladu s positioningem CMO modelu.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="fail">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/reference/jak-e-shop-vital-country-ziskal-9-na-trzbach-diky-chytremu-e-mailingu" target="_blank">/reference/jak-e-shop-vital-country-ziskal-9-na-trzbach-diky-chytremu-e-mailingu</a>
+      <div><span class="card-divize">Reference (case study)</span></div>
+      <div class="card-h1">Jak e-shop Vital Country získal 9 % na tržbách díky chytrému e-mailingu</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-orange">52</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔶 Nevyhovuje</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">Emocionální, spotřebitelský jazyk ('pečlivě vybírá', 'balí je s láskou', 'zdravé dobroty') — odpovídá B2C produktovému copywritingu, nikoli strategické komunikaci Optimia směrem k CEO/CMO publiku</span><span class="tag tag-problem">Chybí kontext zodpovědnosti Optimia — výsledky (212 % růst tržeb, 61 % meziroční růst) jsou prezentovány jako holá čísla bez vazby na to, co Optimio konkrétně řídilo, za co přebíralo odpovědnost a jak byl výsledek dosažen</span><span class="tag tag-problem">H2 'Na co jsme hrdí?' je alibistická a emocionálně laděná formulace — hrdost není byznysový výstup; chybí přímá vazba na obchodní dopad pro klienta</span><span class="tag tag-problem">H2 'Jak jsme začali spolupracovat' popisuje proces vzniku vztahu místo toho, aby komunikoval výchozí problém firmy a strategické zadání — CEO nezajímá geneze spolupráce, ale jaký problém byl vyřešen</span><span class="tag tag-problem">H2 '17 % Open-rate kampaně' prezentuje metriku řemesla (open-rate) bez přímé vazby na tržby nebo ROI — samotný open-rate není byznysový výsledek</span><span class="tag tag-problem">Titulní H1 ('díky chytrému e-mailingu') obsahuje vágní přívlastek 'chytrému' — nevypovídá nic o strategickém přístupu ani o zodpovědnosti Optimia za výsledek</span><span class="tag tag-problem">Ocenění '3. místo na Web Top 100' je prezentováno jako dominantní H2 bez kontextu, co toto ocenění znamená pro byznys klienta — jde o aktivitu/poctu, ne o výsledek pro firmu</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">Konkrétní čísla jsou přítomna a silná: 9 % tržeb z e-mailingu, 212 % růst za 3 roky, 61 % meziroční růst, srovnání obratu listopad 2023 vs. celý rok 2019 — tato data jsou přesně to, co CEO hledá</span><span class="tag tag-good">H1 přímo pojmenovává byznysový výsledek (9 % na tržbách) — orientace na výsledek v titulku je správná</span><span class="tag tag-good">Reaktivační kampaň na databázi 31 228 e-mailů ukazuje konkrétní rozsah práce a technickou exekuci — při správném zarámování může komunikovat zodpovědnost Optimia</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Vital Country je rodinná firma, která se věnuje prodeji zdravé výživy. Pečlivě vybírá kvalitní suroviny od prověřených dodavatelů a balí je s láskou. Nabízí pestrý sortiment zdravých dobrot, v nabídce má také BIO potraviny bez chemie.</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Vital Country je e-shop se zdravou výživou, který v okamžiku zahájení spolupráce disponoval databází přes 30 000 kontaktů — bez funkčního retenčního systému. E-mailing nepřinášel měřitelný příspěvek k tržbám. Optimio převzalo odpovědnost za celý e-mailingový kanál: od očištění databáze přes segmentaci až po automatizační scénáře s přímou vazbou na obrat. Výsledek: e-mailing dnes generuje 9 % celkových tržeb e-shopu.</div>
+          <div class="rewrite-reason">💡 Původní text popisuje produkt klienta spotřebitelským jazykem — to není relevantní pro CEO uvažujícího o spolupráci s Optimiem. Navržená verze okamžitě pojmenovává výchozí problém (nevyužitý kanál, mrtvá databáze), přebírá zodpovědnost Optimia za řešení a uzavírá měřitelným byznysovým výsledkem — v souladu s komunikační strategií a litmus testem.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="fail">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/reference/navyseni-trzby-z-organiku-az-o-60-prectete-si-jak-jsme-to-dokazali" target="_blank">/reference/navyseni-trzby-z-organiku-az-o-60-prectete-si-jak-jsme-to-dokazali</a>
+      <div><span class="card-divize">Reference (case study)</span></div>
+      <div class="card-h1">Navýšení tržby z organiku až o 60 %? Přečtěte si, jak jsme to dokázali</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-orange">52</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔶 Nevyhovuje</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">Alibistické formulace: 'Důvěra klienta hraje značnou roli v úspěchu' a 'Vše je založeno na vzájemné spolupráci, na kompromisech i finančních možnostech klienta' — Optimio zde nepřebírá odpovědnost, ale mluví o kompromisech a závislostech na klientovi.</span><span class="tag tag-problem">Dodavatelský popis řemesla místo byznysového dopadu: H2 'Na organickém výkonu pracujeme roky' a H2 'Jak jsme se k výsledkům dopracovali?' popisují aktivitu a proces, nikoliv zodpovědnost za výsledek.</span><span class="tag tag-problem">Pasivní, popisný tón: 'Do dnešní podoby jsme e-shop dostali postupnými kroky' — chybí silná akční slovesa, odpovědnost a výsledková orientace charakteristická pro Optimio.</span><span class="tag tag-problem">Popis návštěvnosti bez primárního zakotvení v zisku: '80 % meziroční zvýšení organické návštěvnosti' je uvedeno na prvním místě před tržbami — dle strategie je relevantní primárně zisk a tržby, ne provoz.</span><span class="tag tag-problem">Chybí explicitní propojení výsledků s byznysovým dopadem klienta — text uvádí čísla, ale nevysvětluje, co konkrétně 60% nárůst tržeb znamenal pro firmu Vyspimese (obrat, škálovatelnost, nezávislost na placené reklamě).</span><span class="tag tag-problem">Popis UX a uživatelského výzkumu bez byznysového kontextu: 'významnou roli tu hrálo také UX a uživatelský výzkum' — bez uvedení, jak to přispělo k obchodnímu výsledku.</span><span class="tag tag-problem">H1 je formulován jako otázka s tónem překvapení ('Přečtěte si, jak jsme to dokázali'), což mírně oslabuje sebevědomý a přímý hlas Optimia — výsledek by měl být prezentován jako standard, ne jako úspěch hodný údivu.</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">Konkrétní měřitelná čísla jsou přítomna: 60 % nárůst tržeb z organiku, 80 % nárůst návštěvnosti, konverzní poměr z 1,24 % na 1,48 % — to odpovídá datové orientaci Optimia.</span><span class="tag tag-good">Zmínka o dlouhodobé spolupráci a strategickém záběru (SEO + UX + obsah + linkbuilding) naznačuje partnerský přístup, ne jednorázovou kampaň.</span><span class="tag tag-good">H1 obsahuje konkrétní výsledek (60 %) — ne vágní slib.</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Důvěra klienta hraje při kontinuální práci na SEO značnou roli v úspěchu. Vše je založeno na vzájemné spolupráci, na kompromisech i finančních možnostech klienta. Změny, s kterými jsme my nebo klient přišli, se děly postupně.</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Výsledky tohoto rozsahu nevznikají náhodou — jsou výstupem systematické práce a jasně stanovené strategie. Převzali jsme odpovědnost za organický výkon Vyspimese.cz a každé rozhodnutí — od architektury kategorií přes obsah až po linkbuilding — jsme podřídili jedinému cíli: měřitelnému růstu tržeb z organického kanálu.</div>
+          <div class="rewrite-reason">💡 Původní věty přenášejí odpovědnost na klienta (kompromisy, finanční možnosti, postupné změny) a působí alibisticky. Rewrite vrací zodpovědnost Optimiu, používá silná akční slovesa a explicitně propojuje práci s byznysovým výsledkem — v souladu s tónovými vzory a litmus testem ze strategie.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="fail">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/reference/z-cervenych-cisel-do-55-rustu-trzeb-za-ctyri-mesice-jak-kilpi-vydelava-diky-ppc-reklame" target="_blank">/reference/z-cervenych-cisel-do-55-rustu-trzeb-za-ctyri-mesice-jak-kilpi-vydelava-diky-ppc-reklame</a>
+      <div><span class="card-divize">Reference (case study)</span></div>
+      <div class="card-h1">Z červených čísel do 55% růstu tržeb za čtyři měsíce! Jak Kilpi vydělává díky PPC reklamě?</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-orange">62</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔶 Nevyhovuje</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H1 obsahuje vykřičník a hovorový tón ('Jak Kilpi vydělává díky PPC reklamě?') — otázková forma snižuje autoritu a sebevědomí Optimia, text zní spíše jako blogový nadpis než komunikace C-suite partnera</span><span class="tag tag-problem">Věta 'V nastavení PPC reklam je hodně co zlepšit!' je alibistická a neformální — výkřičník a hovorové 's vykřičníkem' neodpovídá byznysovému tónu strategie</span><span class="tag tag-problem">Zakázaný myšlenkový vzor: 'Zlevnili jsme prokliky a ušetřili desetitisíce' popisuje řemeslo a úsporu nákladů jako hlavní benefit — chybí přímá vazba na obratový výsledek a ROI klienta v kontextu byznysové hodnoty</span><span class="tag tag-problem">Pasivní a dodavatelský tón v části 'vrhli jsme se na vypínání vybraných kampaní' — popis aktivity místo přebrání zodpovědnosti za výsledek</span><span class="tag tag-problem">H2 'A co vaše ponákupní komunikace?' — téma ponákupní komunikace není nijak propojeno s obsahem case study o PPC, působí jako nesouvisející cross-sell bez kontextu</span><span class="tag tag-problem">Úvodní bullet pointy o Kilpi ('Prioritou Kilpi je neustálý technický rozvoj...') jsou popis produktu klienta bez jakékoliv vazby na byznysový problém nebo výsledek — zbytečný obsah z pohledu CEO čtenáře</span><span class="tag tag-problem">Věta 'S přicházející sezónou v patách jsme upravili PPC kampaně' obsahuje přílišně neformální metaforu 'v patách', která nesedí k 70% formálnímu tónu strategie</span><span class="tag tag-problem">Chybí explicitní vyjádření zodpovědnosti Optimia — nikde v textu Optimio neříká, že přebírá odpovědnost za výsledek, pouze popisuje co dělalo</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">H1 a klíčové H2 pracují s konkrétními čísly (55 % růst tržeb, čtyři měsíce) — to odpovídá požadavku strategie na měřitelné výstupy a byznysový jazyk</span><span class="tag tag-good">Úvodní odstavec case study dobře rámuje kontext: stagnace → audit → akce → výsledek — logická struktura pro CEO čtenáře</span><span class="tag tag-good">Zmínka o desetitisících ušetřeného kreditu je konkrétní a relevantní, byť by potřebovala silnější byznysový rám</span><span class="tag tag-good">H2 'Výsledek? 55 % nárůst tržeb e-shopu' je přímé, výsledkově orientované — správný přístup</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Na konci listopadu jsme si s Kilpi plácli a od 1. prosince byly PPC v naší režii, zimní sezóna v plném proudu a přišel nejvyšší čas nastartovat růst e-shopu a využít potenciálu silného brandu. V účtech Google Ads a Sklik jsme se vrhli na vypínání vybraných kampaní, které dlouhodobě nepřinášely dobré výsledky a zbytečně klientovi utrácely peníze.</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Od 1. prosince jsme převzali plnou správu PPC účtů Kilpi — právě v době, kdy zimní sezóna dosahovala vrcholu. Prvním krokem bylo zastavit krvácení rozpočtu: identifikovali jsme a deaktivovali kampaně, které dlouhodobě generovaly náklady bez měřitelného přínosu pro tržby. Každá uvolněná koruna byla okamžitě přesměrována tam, kde přinášela prokazatelný obratový výsledek.</div>
+          <div class="rewrite-reason">💡 Původní text používá neformální výraz 'plácli si', popisuje aktivitu ('vrhli jsme se na vypínání') místo zodpovědnosti za výsledek a nezmiňuje byznysový dopad přesměrování rozpočtu. Přepis zachovává fakta, ale zasazuje je do rámce přebrané zodpovědnosti a přímé vazby každého kroku na obratový výsledek — v souladu se strategií Optimia.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="fail">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/reference/dokaze-youtube-reklama-prodat-tisice-batohu-meatfly" target="_blank">/reference/dokaze-youtube-reklama-prodat-tisice-batohu-meatfly</a>
+      <div><span class="card-divize">Reference (case study)</span></div>
+      <div class="card-h1">Dokáže YouTube reklama prodat tisíce batohů Meatfly?</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-orange">62</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔶 Nevyhovuje</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H1 je formulován jako otázka s nejistotou ('Dokáže YouTube reklama prodat tisíce batohů?') — tón Optimia nepochybuje, ale tvrdí a ručí za výsledek. Alibistická forma otázky oslabuje sebevědomí značky.</span><span class="tag tag-problem">Úvodní odstavec o batozích ('Před odchodem seberou sluchátka, klíče a mobil...') popisuje produkt klienta místo byznysového dopadu — chybí okamžitá vazba na výsledek nebo výzvu, kterou Optimio řešilo.</span><span class="tag tag-problem">Věta 'začali spravovat kampaně v Google Ads, Skliku a Facebooku' je dodavatelský popis aktivity bez vazby na byznysový výsledek — přesně vzor 'popis řemesla místo dopadu'.</span><span class="tag tag-problem">Formulace 'hygiena reklamních účtů a návrh nové struktury kampaní' je interní agenturní žargon bez překladu do byznysové hodnoty pro čtenáře na úrovni CEO.</span><span class="tag tag-problem">Chybí explicitní vyjádření zodpovědnosti Optimia — nikde v dostupném textu není formulace, že Optimio přebírá výsledek, ne jen exekuci.</span><span class="tag tag-problem">H2 'Kdo nepracuje s daty, ten jen hádá' je správný směr, ale nedostatečně zakotven v konkrétním dopadu na obrat nebo ROAS klienta — zůstává na úrovni claims bez čísel.</span><span class="tag tag-problem">Věta 'chtěli dokázat sobě i značce, že to prostě jde' působí interně a příliš neformálně — posouvá tón do příliš přátelské polohy nad rámec 30 % stanoveného strategií.</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">H2 'Výsledek? Brand building se zatraceně vyplatí, když se dělá správně' — sebevědomý, přímý, orientovaný na výsledek. Odpovídá tónu Optimia.</span><span class="tag tag-good">Zmínka o maržovosti klienta jako klíčovém kritériu ('zaměřili jsme se na maržovost klienta') signalizuje byznysový mindset nad rámec pouhé správy kampaní.</span><span class="tag tag-good">Strukturou case study sleduje logiku výzva → přístup → výsledek, což odpovídá potřebám cílové skupiny CEO/CMO.</span><span class="tag tag-good">H2 'Děti šly do školy, prodeje nahoru' je konkrétní, akční a orientovaný na výsledek — správný vzor pro nadpis v case study.</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Dokáže YouTube reklama prodat tisíce batohů Meatfly?</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ YouTube kampaň, která prodala tisíce batohů Meatfly — a dokázala, že brand building má přímou vazbu na obrat.</div>
+          <div class="rewrite-reason">💡 Originální H1 jako otázka implikuje nejistotu a pochybnost — v rozporu se sebevědomým tónem Optimia, které výsledky dodává, nepochybuje o nich. Přepis zachovává dramatičnost a konkrétnost, ale mluví z pozice autority a rovnou deklaruje byznysový výsledek, který čtenář na úrovni CEO okamžitě ocení.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="fail">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/reference/jak-diky-seo-dosahla-tescoma-mezirocniho-narustu-obratu-o-42" target="_blank">/reference/jak-diky-seo-dosahla-tescoma-mezirocniho-narustu-obratu-o-42</a>
+      <div><span class="card-divize">Reference (case study)</span></div>
+      <div class="card-h1">Jak díky SEO dosáhla TESCOMA meziročního nárůstu obratu o 42 %</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-orange">62</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔶 Nevyhovuje</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">H2 'Jak jsme redesignovali e-shop Tescomy?' a 'Jak přivést zákazníka k cíli?' popisují řemeslo a aktivitu místo byznysového dopadu — chybí jasná vazba na obrat, marži nebo škálovatelnost výsledku</span><span class="tag tag-problem">H1 a celkový titulek fungují dobře (konkrétní čísla, obrat), ale tělo textu tento příslib nesplňuje — výsledek 42 % nárůstu je zmíněn jakoby mimochodem uprostřed textu, nikoliv jako ústřední osa sdělení</span><span class="tag tag-problem">Věta 'Víte co je sen každého provozovatele e-shopu?' — rétorická otázka junior-editorského stylu, nesedí do tónu C-suite komunikace a posouvá text do polohy magazínového článku, ne strategického case study</span><span class="tag tag-problem">Věta 'Co nám k tomu pomohlo? Kompletní redesign a změna struktury e-shopu.' — popisuje aktivitu/řemeslo, nikoli zodpovědnost a strategické rozhodnutí; Optimio zde nevystupuje jako strategický partner, ale jako realizátor zakázky</span><span class="tag tag-problem">H2 'Raketový start redesignovaného e-shopu? S tím nepočítejte' — negativní framing bez okamžitého byznysového kontextu; na úrovni nadpisu může odradit nebo zmást čtenáře z cílové skupiny CEO/CMO</span><span class="tag tag-problem">Chybí explicitní komunikace zodpovědnosti Optimia — text popisuje co se stalo, ale ne že Optimio za výsledek ručilo a strategicky ho řídilo jako byznys funkci</span><span class="tag tag-problem">Sdělení 'U TESCOMY se nám podařilo i po 6 letech spolupráce vyrůst' — alibistické 'podařilo' je blízko zakázanému vzoru 'snažíme se'; správně by mělo znít, že Optimio výsledek řídilo, ne že se mu podařil</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">H1 a titulek stránky jsou silné — konkrétní číslo (42 %) a přímá vazba na obrat odpovídá strategii; CEO/CMO okamžitě vidí byznysový výsledek</span><span class="tag tag-good">Zmínka o 6 letech spolupráce komunikuje dlouhodobé partnerství, nikoliv jednorázovou dodávku — to sedí do pozicioningu strategického partnera</span><span class="tag tag-good">Konkrétní čísla (42,1 % obrat, 39,33 % objednávky) jsou správný jazyk pro cílovou skupinu — žádné vágní sliby</span><span class="tag tag-good">Příklad o hrnci a struktuře produktových řad je srozumitelná ilustrace problému, která mluví jazykem zákazníka, ne odborným žargonem</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Víte co je sen každého provozovatele e-shopu? [...] Co nám k tomu pomohlo? Kompletní redesign a změna struktury e-shopu.</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Po šesti letech řízení marketingu TESCOMA jsme identifikovali strukturální brzdu růstu: architektura e-shopu kopírovala interní logiku produktových řad, ne nákupní chování zákazníků. Přebrali jsme odpovědnost za redesign a změnu informační architektury — výsledkem byl v sedmém roce spolupráce meziroční nárůst obratu o 42,1 % a nárůst počtu objednávek o 39,33 %.</div>
+          <div class="rewrite-reason">💡 Původní text popisuje aktivitu a ptá se rétorickou otázkou v tónu neodpovídajícím C-suite komunikaci. Navržený přepis: (1) explicitně přebírá zodpovědnost Optimia za strategické rozhodnutí, (2) propojuje diagnózu problému s byznysovým výsledkem, (3) zní jako strategický partner, ne jako dodavatel, který 'redesignoval e-shop'.</div>
+        </div>
+</div>
+
+<div class="card audit-card" data-score="fail">
+  <div class="card-header">
+    <div class="card-meta">
+      <a class="card-url" href="https://optimio-web.webflow.io/reference/narust-objednavek-o-238-u-sigmashop-cz-diky-pmax-kampanim-a-srovnavacum-zbozi" target="_blank">/reference/narust-objednavek-o-238-u-sigmashop-cz-diky-pmax-kampanim-a-srovnavacum-zbozi</a>
+      <div><span class="card-divize">Reference (case study)</span></div>
+      <div class="card-h1">Nárůst objednávek o 238 % u SIGMAshop.cz díky PMax kampaním a srovnávačům zboží</div>
+    </div>
+    <div class="score-badge">
+      <div class="score-num score-orange">62</div>
+      <div class="score-label">/ 100</div>
+      <div style="margin-top:.4rem;font-size:.9rem">🔶 Nevyhovuje</div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Problémy</div><span class="tag tag-problem">Úvodní odstavce popisují historii klienta a onboarding proces místo toho, aby hned komunikovaly byznysový dopad — CEO nechce číst o 150leté historii, chce vidět výsledek a strategické rozhodnutí.</span><span class="tag tag-problem">Fráze 'pustili jsme se do práce' a 'přemýšleli jsme s klientem' jsou pasivně-popisné, dodavatelské — chybí vyjádření odpovědnosti a drivu na úrovni strategického partnera.</span><span class="tag tag-problem">Věta 'zajímaly nás firemní hodnoty, vize a cíle' je vágní onboarding klišé — neříká nic o tom, co Optimio zjistilo a jak to ovlivnilo strategii.</span><span class="tag tag-problem">H2 'Bez (vyladěných) reklam nejsou konverze' je polopatistické a zní jako vysvětlování základů juniorovi, ne jako komunikace s CEO/CMO.</span><span class="tag tag-problem">H2 'A co kreativa?' zní konverzačně a povrchně — neodpovídá sebevědomému, přímému tónu Optimia.</span><span class="tag tag-problem">Věta 'Na segmentaci jsme pracovali tak dlouho, až jsme...' (nedokončená) signalizuje popis aktivity a odpracovaných hodin, nikoli zodpovědnost za výsledek.</span><span class="tag tag-problem">Text používá sloveso 'spustila' (e-shop spustila v roce 2011) — blíží se zakázané formulaci 'spustíme', i když zde jde o popis klienta, celkový kontext snižuje důvěryhodnost.</span><span class="tag tag-problem">Chybí explicitní propojení datových rozhodnutí s obratovými cíli klienta — analýza dat je zmíněna, ale není řečeno, co konkrétně přinesla v číslech před zásahem Optimia.</span>
+  <div class="section-title" style="margin-top:.8rem">Co funguje</div><span class="tag tag-good">H1 s konkrétním číslem (238 %) je silný, přímý a okamžitě komunikuje byznysový výsledek — správný vzor pro case study.</span><span class="tag tag-good">Zmínka o rozsegmentování PMax kampaní podle kategorií ukazuje strategické myšlení nad rámec rutinní správy účtů.</span><span class="tag tag-good">Přítomnost H2 'Čeho jsme dosáhli' naznačuje, že text směřuje k výsledkové sekci — to je správná struktura case study.</span><span class="tag tag-good">Odkaz na data z analytiky jako základ rozhodování je v souladu s komunikační strategií Optimia (data-driven přístup).</span>
+  
+        <div class="rewrite-box">
+          <div class="section-title">Navržený přepis</div>
+          <div class="rewrite-original">❌ Spolupráce se společností SIGMA PUMPY HRANICE s.r.o začala v srpnu loňského roku. Založili jsme v našem interním systému první úkoly a pustili se do práce: zajímaly nás firemní hodnoty, vize a cíle. Postupně jsme se seznamovali s veškerým sortimentem i marketingovými aktivitami, na nichž byznys SIGMAshop.cz do té doby stál. Přemýšleli jsme s klientem nad jeho dalšími kroky a postupně tvořili strat</div>
+          <div class="rewrite-arrow">↓ nahradit za</div>
+          <div class="rewrite-new">✅ Když jsme v srpnu přebírali marketingový výkon SIGMAshop.cz, viděli jsme v účtech okamžitě nevyužitý potenciál. Prvním krokem byla hloubková analýza dat — sortimentu, konverzního chování a struktury kampaní. Na základě těchto dat jsme definovali jasné obratové cíle pro každou kategorii a postavili strategii, která přivedla o 238 % více objednávek než předchozí stav.</div>
+          <div class="rewrite-reason">💡 Původní text popisuje onboarding proces z pohledu dodavatele (zakládání úkolů, seznamování se). Navržená verze okamžitě přebírá odpovědnost za výsledek, ukazuje datové rozhodování a zasazuje 238% nárůst do kontextu konkrétního strategického kroku — v souladu s pozicioningem Interim CMO partnera.</div>
+        </div>
+</div>
+<script>
+function filterCards(val) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === val));
+  document.querySelectorAll('.audit-card').forEach(card => {
+    const show = val === 'all' || card.dataset.score === val;
+    card.style.display = show ? '' : 'none';
+  });
+}
+document.addEventListener('DOMContentLoaded', () => filterCards('all'));
+</script>
+</body></html>
