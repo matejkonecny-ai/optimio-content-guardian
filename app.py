@@ -197,59 +197,67 @@ for item in filtered:
     label = score_label(score)
     url   = page.get("url", "")
     short_url = url.replace("https://optimio-web.webflow.io", "") or "/"
+    problems  = audit.get("problemy", [])
+    goods     = audit.get("silne_stranky", [])
+    rw        = audit.get("rewrite", {})
 
-    with st.container():
-        col_meta, col_score = st.columns([5, 1])
+    # ── Hlavička karty ──
+    col_meta, col_score = st.columns([6, 1])
+    with col_meta:
+        st.markdown(
+            f"**[{short_url}]({url})** &nbsp;"
+            f"<span style='background:#1e3a5f;color:#8ec8ff;padding:2px 10px;"
+            f"border-radius:10px;font-size:.78rem'>{page.get('divize','')}</span>",
+            unsafe_allow_html=True,
+        )
+        st.caption(page.get("h1", "(bez H1)"))
+    with col_score:
+        st.markdown(
+            f"<div style='text-align:right'>"
+            f"<span style='font-size:2rem;font-weight:700;color:{color}'>{score}</span>"
+            f"<span style='font-size:.8rem;color:#888'> / 100</span><br>"
+            f"<span style='font-size:.8rem'>{label}</span></div>",
+            unsafe_allow_html=True,
+        )
 
-        with col_meta:
+    # ── Problémy ──
+    if problems:
+        st.markdown("**Nedostatky:**")
+        for i, p in enumerate(problems, 1):
             st.markdown(
-                f"**[{short_url}]({url})** &nbsp; "
-                f"<span style='background:#1e3a5f;color:#8ec8ff;padding:2px 8px;"
-                f"border-radius:10px;font-size:.8rem'>{page.get('divize','')}</span>",
-                unsafe_allow_html=True,
-            )
-            st.markdown(f"*{page.get('h1','(bez H1)')}*")
-
-        with col_score:
-            st.markdown(
-                f"<div style='text-align:center'>"
-                f"<div style='font-size:2rem;font-weight:700;color:{color}'>{score}</div>"
-                f"<div style='font-size:.75rem;color:#888'>/ 100</div>"
-                f"<div style='font-size:.8rem;margin-top:.2rem'>{label}</div>"
-                f"</div>",
-                unsafe_allow_html=True,
-            )
-
-        # Problémy a silné stránky
-        problems = audit.get("problemy", [])
-        goods    = audit.get("silne_stranky", [])
-
-        if problems:
-            st.markdown(
-                " ".join(
-                    f"<span style='background:#3a1a1a;color:#ff8080;padding:2px 8px;"
-                    f"border-radius:4px;font-size:.82rem;margin:2px'>{p}</span>"
-                    for p in problems
-                ),
-                unsafe_allow_html=True,
-            )
-        if goods:
-            st.markdown(
-                " ".join(
-                    f"<span style='background:#1a3a1a;color:#80d080;padding:2px 8px;"
-                    f"border-radius:4px;font-size:.82rem;margin:2px'>{g}</span>"
-                    for g in goods
-                ),
+                f"<div style='padding:6px 12px;margin:3px 0;border-left:3px solid #c0392b;"
+                f"background:#1e0e0e;border-radius:0 6px 6px 0;font-size:.9rem'>"
+                f"{i}. {p}</div>",
                 unsafe_allow_html=True,
             )
 
-        # Rewrite návrh
-        rw = audit.get("rewrite", {})
-        if rw.get("original") and rw.get("navrzeny"):
-            with st.expander("Navržený přepis"):
-                st.markdown(f"**Původní:** _{rw['original']}_")
-                st.markdown(f"**Navržený:** {rw['navrzeny']}")
-                if rw.get("duvod"):
-                    st.caption(f"Důvod: {rw['duvod']}")
+    # ── Co funguje ──
+    if goods:
+        st.markdown("**Co funguje:**" if problems else "**Silné stránky:**")
+        for g in goods:
+            st.markdown(
+                f"<div style='padding:6px 12px;margin:3px 0;border-left:3px solid #27ae60;"
+                f"background:#0e1e0e;border-radius:0 6px 6px 0;font-size:.9rem'>"
+                f"✓ {g}</div>",
+                unsafe_allow_html=True,
+            )
 
-        st.divider()
+    # ── Navržený přepis ──
+    if rw.get("original") and rw.get("navrzeny"):
+        st.markdown("**Navržený přepis:**")
+        st.markdown(
+            f"<div style='background:#0d1117;border-radius:8px;padding:14px 16px;margin-top:4px'>"
+            f"<div style='font-size:.78rem;color:#888;margin-bottom:6px;text-transform:uppercase;"
+            f"letter-spacing:.05em'>Původní text</div>"
+            f"<div style='color:#ff9090;font-style:italic;font-size:.9rem;line-height:1.5;"
+            f"padding-bottom:10px;border-bottom:1px solid #2a2a2a'>{rw['original']}</div>"
+            f"<div style='font-size:.78rem;color:#888;margin:10px 0 6px;text-transform:uppercase;"
+            f"letter-spacing:.05em'>Navržená verze</div>"
+            f"<div style='color:#7dea7d;font-size:.9rem;line-height:1.5;font-weight:500'>"
+            f"{rw['navrzeny']}</div>"
+            f"{'<div style=\"font-size:.8rem;color:#666;margin-top:10px;padding-top:8px;border-top:1px solid #2a2a2a\">💡 ' + rw[\"duvod\"] + '</div>' if rw.get('duvod') else ''}"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+    st.divider()
