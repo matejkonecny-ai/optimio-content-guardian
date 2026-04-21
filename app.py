@@ -73,12 +73,13 @@ st.sidebar.markdown("### Nový audit")
 
 target_url = st.sidebar.text_input("URL webu", value=BASE_URL)
 
-run_audit = st.sidebar.button("▶️ Spustit audit", type="primary", use_container_width=True,
-                               help="Projde web a spustí AI analýzu všech stránek (~3 min)")
+st.sidebar.caption("⚠️ Spuštění auditu volá Anthropic API a spotřebuje kredity (~32 stránek).")
+run_audit = st.sidebar.button("▶️ Spustit nový audit", type="primary", use_container_width=True,
+                               help="Projde web a spustí AI analýzu (~3 min, spotřebuje API kredity)")
 
 if run_audit:
     if not os.environ.get("ANTHROPIC_API_KEY"):
-        st.sidebar.error("Nastav proměnnou prostředí ANTHROPIC_API_KEY.")
+        st.sidebar.error("Nastav ANTHROPIC_API_KEY v Streamlit secrets.")
     else:
         st.session_state["audit_running"] = True
         st.session_state["audit_log"] = []
