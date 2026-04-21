@@ -226,7 +226,7 @@ for item in filtered:
         for i, p in enumerate(problems, 1):
             st.markdown(
                 f"<div style='padding:6px 12px;margin:3px 0;border-left:3px solid #c0392b;"
-                f"background:#1e0e0e;border-radius:0 6px 6px 0;font-size:.9rem'>"
+                f"background:#2a1010;border-radius:0 6px 6px 0;font-size:.9rem;color:#f0c0c0'>"
                 f"{i}. {p}</div>",
                 unsafe_allow_html=True,
             )
@@ -237,7 +237,7 @@ for item in filtered:
         for g in goods:
             st.markdown(
                 f"<div style='padding:6px 12px;margin:3px 0;border-left:3px solid #27ae60;"
-                f"background:#0e1e0e;border-radius:0 6px 6px 0;font-size:.9rem'>"
+                f"background:#0e2a18;border-radius:0 6px 6px 0;font-size:.9rem;color:#a8e6c0'>"
                 f"✓ {g}</div>",
                 unsafe_allow_html=True,
             )
@@ -246,19 +246,19 @@ for item in filtered:
     if rw.get("original") and rw.get("navrzeny"):
         st.markdown("**Navržený přepis:**")
         duvod_html = (
-            f"<div style='font-size:.8rem;color:#666;margin-top:10px;padding-top:8px;"
-            f"border-top:1px solid #2a2a2a'>💡 {rw['duvod']}</div>"
+            f"<div style='font-size:.8rem;color:#aaa;margin-top:10px;padding-top:8px;"
+            f"border-top:1px solid #3a3a3a'>💡 {rw['duvod']}</div>"
             if rw.get("duvod") else ""
         )
         st.markdown(
-            f"<div style='background:#0d1117;border-radius:8px;padding:14px 16px;margin-top:4px'>"
-            f"<div style='font-size:.78rem;color:#888;margin-bottom:6px;text-transform:uppercase;"
+            f"<div style='background:#1a1a2e;border-radius:8px;padding:14px 16px;margin-top:4px'>"
+            f"<div style='font-size:.78rem;color:#aaa;margin-bottom:6px;text-transform:uppercase;"
             f"letter-spacing:.05em'>Původní text</div>"
-            f"<div style='color:#ff9090;font-style:italic;font-size:.9rem;line-height:1.5;"
-            f"padding-bottom:10px;border-bottom:1px solid #2a2a2a'>{rw['original']}</div>"
-            f"<div style='font-size:.78rem;color:#888;margin:10px 0 6px;text-transform:uppercase;"
+            f"<div style='color:#f4a0a0;font-style:italic;font-size:.9rem;line-height:1.5;"
+            f"padding-bottom:10px;border-bottom:1px solid #3a3a3a'>{rw['original']}</div>"
+            f"<div style='font-size:.78rem;color:#aaa;margin:10px 0 6px;text-transform:uppercase;"
             f"letter-spacing:.05em'>Navržená verze</div>"
-            f"<div style='color:#7dea7d;font-size:.9rem;line-height:1.5;font-weight:500'>"
+            f"<div style='color:#90e8a0;font-size:.9rem;line-height:1.5;font-weight:500'>"
             f"{rw['navrzeny']}</div>"
             f"{duvod_html}"
             f"</div>",
