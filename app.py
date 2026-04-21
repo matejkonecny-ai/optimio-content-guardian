@@ -245,6 +245,11 @@ for item in filtered:
     # ── Navržený přepis ──
     if rw.get("original") and rw.get("navrzeny"):
         st.markdown("**Navržený přepis:**")
+        duvod_html = (
+            f"<div style='font-size:.8rem;color:#666;margin-top:10px;padding-top:8px;"
+            f"border-top:1px solid #2a2a2a'>💡 {rw['duvod']}</div>"
+            if rw.get("duvod") else ""
+        )
         st.markdown(
             f"<div style='background:#0d1117;border-radius:8px;padding:14px 16px;margin-top:4px'>"
             f"<div style='font-size:.78rem;color:#888;margin-bottom:6px;text-transform:uppercase;"
@@ -255,7 +260,7 @@ for item in filtered:
             f"letter-spacing:.05em'>Navržená verze</div>"
             f"<div style='color:#7dea7d;font-size:.9rem;line-height:1.5;font-weight:500'>"
             f"{rw['navrzeny']}</div>"
-            f"{'<div style=\"font-size:.8rem;color:#666;margin-top:10px;padding-top:8px;border-top:1px solid #2a2a2a\">💡 ' + rw[\"duvod\"] + '</div>' if rw.get('duvod') else ''}"
+            f"{duvod_html}"
             f"</div>",
             unsafe_allow_html=True,
         )
